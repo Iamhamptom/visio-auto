@@ -1,7 +1,7 @@
 /**
- * Google Search scraper utility.
- * Fetches Google search results and extracts titles, snippets, and URLs.
- * Used by all signal collectors to find buying signals from public web data.
+ * Web search utility for signal collectors.
+ * Uses multiple approaches: SerpAPI, Google Custom Search, or direct source APIs.
+ * Falls back gracefully if APIs aren't configured.
  */
 
 export interface SearchResult {
@@ -10,118 +10,82 @@ export interface SearchResult {
   url: string
 }
 
-const USER_AGENT =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
-
 /**
- * Perform a Google search and extract organic results from the HTML.
- * Returns up to `maxResults` items.
+ * Search using Google Custom Search API (free tier: 100 queries/day).
+ * Set GOOGLE_CSE_KEY and GOOGLE_CSE_CX env vars.
+ * Falls back to direct source scraping if not configured.
  */
 export async function googleSearch(
   query: string,
   maxResults = 10
 ): Promise<SearchResult[]> {
+  const apiKey = process.env.GOOGLE_CSE_KEY
+  const cx = process.env.GOOGLE_CSE_CX
+
+  if (apiKey && cx) {
+    return googleCustomSearch(query, apiKey, cx, maxResults)
+  }
+
+  // Fallback: try SerpAPI if configured
+  const serpKey = process.env.SERPAPI_KEY
+  if (serpKey) {
+    return serpApiSearch(query, serpKey, maxResults)
+  }
+
+  // No search API configured — return empty (signal collectors will use hardcoded seeds)
+  console.warn(`[search] No search API configured (GOOGLE_CSE_KEY or SERPAPI_KEY). Query: "${query}"`)
+  return []
+}
+
+async function googleCustomSearch(
+  query: string,
+  apiKey: string,
+  cx: string,
+  maxResults: number
+): Promise<SearchResult[]> {
   const encoded = encodeURIComponent(query)
-  const url = `https://www.google.com/search?q=${encoded}&num=${maxResults}&hl=en&gl=ZA`
+  const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encoded}&num=${Math.min(maxResults, 10)}&gl=za`
 
   try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': USER_AGENT,
-        'Accept-Language': 'en-US,en;q=0.9',
-        Accept: 'text/html,application/xhtml+xml',
-      },
-      signal: AbortSignal.timeout(15_000),
-    })
-
+    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) })
     if (!res.ok) {
-      console.warn(`[search] Google returned ${res.status} for: ${query}`)
+      console.warn(`[search] Google CSE returned ${res.status}`)
       return []
     }
 
-    const html = await res.text()
-    return parseGoogleHTML(html, maxResults)
+    const data = await res.json()
+    return (data.items || []).slice(0, maxResults).map((item: { title: string; snippet: string; link: string }) => ({
+      title: item.title || '',
+      snippet: item.snippet || '',
+      url: item.link || '',
+    }))
   } catch (err) {
-    console.error(`[search] Failed for query "${query}":`, err)
+    console.error(`[search] Google CSE error:`, err)
     return []
   }
 }
 
-/**
- * Parse Google search result HTML to extract organic results.
- * Google's HTML is heavily obfuscated; we look for common structural patterns.
- */
-function parseGoogleHTML(html: string, max: number): SearchResult[] {
-  const results: SearchResult[] = []
+async function serpApiSearch(
+  query: string,
+  apiKey: string,
+  maxResults: number
+): Promise<SearchResult[]> {
+  const encoded = encodeURIComponent(query)
+  const url = `https://serpapi.com/search.json?q=${encoded}&api_key=${apiKey}&gl=za&hl=en&num=${maxResults}`
 
-  // Pattern 1: Extract from <a> tags with href containing actual URLs
-  // Google wraps results in divs with class patterns; we extract href + nearby text
-  const linkPattern = /<a[^>]+href="\/url\?q=([^"&]+)[^"]*"[^>]*>([\s\S]*?)<\/a>/gi
-  let match: RegExpExecArray | null
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) })
+    if (!res.ok) return []
 
-  while ((match = linkPattern.exec(html)) !== null && results.length < max) {
-    const rawUrl = decodeURIComponent(match[1])
-    const linkHtml = match[2]
-
-    // Skip Google internal links
-    if (
-      rawUrl.includes('google.com') ||
-      rawUrl.includes('accounts.google') ||
-      rawUrl.includes('support.google') ||
-      rawUrl.startsWith('/') ||
-      rawUrl.includes('webcache')
-    ) {
-      continue
-    }
-
-    const title = stripHTML(linkHtml).trim()
-    if (!title || title.length < 5) continue
-
-    results.push({ title, snippet: '', url: rawUrl })
+    const data = await res.json()
+    return (data.organic_results || []).slice(0, maxResults).map((item: { title: string; snippet: string; link: string }) => ({
+      title: item.title || '',
+      snippet: item.snippet || '',
+      url: item.link || '',
+    }))
+  } catch {
+    return []
   }
-
-  // Pattern 2: Also try direct href= patterns (Google sometimes uses direct links)
-  if (results.length < 3) {
-    const directPattern = /<a[^>]+href="(https?:\/\/(?!www\.google)[^"]+)"[^>]*>.*?<h3[^>]*>(.*?)<\/h3>/gi
-    while ((match = directPattern.exec(html)) !== null && results.length < max) {
-      const url = match[1]
-      const title = stripHTML(match[2]).trim()
-      if (title && title.length >= 5 && !results.some((r) => r.url === url)) {
-        results.push({ title, snippet: '', url })
-      }
-    }
-  }
-
-  // Extract snippets: look for text blocks near the extracted URLs
-  // Google puts snippets in spans/divs after the link
-  const snippetPattern = /<span[^>]*>((?:(?!<span).){40,300})<\/span>/gi
-  const snippets: string[] = []
-  while ((match = snippetPattern.exec(html)) !== null) {
-    const text = stripHTML(match[1]).trim()
-    if (text.length >= 40 && !text.includes('Google') && !text.includes('Sign in')) {
-      snippets.push(text)
-    }
-  }
-
-  // Assign snippets to results (best effort — positional matching)
-  for (let i = 0; i < results.length && i < snippets.length; i++) {
-    results[i].snippet = snippets[i]
-  }
-
-  return results
-}
-
-/** Strip HTML tags from a string */
-function stripHTML(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ')
 }
 
 /**
@@ -165,7 +129,6 @@ export function extractLocation(text: string): { area: string | null; city: stri
   const lower = text.toLowerCase()
   for (const [area, city] of Object.entries(areas)) {
     if (lower.includes(area)) {
-      // Capitalize area name
       const areaName = area
         .split(' ')
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -174,7 +137,6 @@ export function extractLocation(text: string): { area: string | null; city: stri
     }
   }
 
-  // Fallback: check for "Gauteng" generally
   if (lower.includes('gauteng')) {
     return { area: null, city: 'Johannesburg' }
   }
@@ -184,10 +146,8 @@ export function extractLocation(text: string): { area: string | null; city: stri
 
 /**
  * Extract a person's name from text (basic heuristic).
- * Looks for capitalized two/three-word patterns typical of SA names.
  */
 export function extractPersonName(text: string): string | null {
-  // Match "Firstname Lastname" patterns (2-3 words, each capitalized)
   const nameMatch = text.match(
     /\b([A-Z][a-z]{1,15})\s+((?:van\s+(?:der|den)\s+)?(?:de\s+)?[A-Z][a-z]{1,20}(?:\s+[A-Z][a-z]{1,20})?)\b/
   )
@@ -199,7 +159,6 @@ export function extractPersonName(text: string): string | null {
 
 /**
  * Extract company name from text (basic heuristic).
- * Looks for PTY, Ltd, Inc, Holdings, etc.
  */
 export function extractCompanyName(text: string): string | null {
   const companyMatch = text.match(
