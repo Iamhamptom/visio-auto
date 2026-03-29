@@ -11,6 +11,8 @@ import {
   Package,
   TrendingUp,
   Plug,
+  Send,
+  Presentation,
   Settings,
   Bell,
   Car,
@@ -30,6 +32,8 @@ const navItems = [
   { label: "Inventory", href: "/dashboard/inventory", icon: Package },
   { label: "Analytics", href: "/dashboard/analytics", icon: TrendingUp },
   { label: "Integrations", href: "/dashboard/integrations", icon: Plug },
+  { label: "Outreach", href: "/dashboard/outreach", icon: Send },
+  { label: "Pitch Builder", href: "/dashboard/pitch", icon: Presentation },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
