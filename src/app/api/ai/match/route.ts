@@ -1,9 +1,17 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { matchVehicles, formatMatchesForWhatsApp } from '@/lib/ai/match'
-import { createClient } from '@/lib/supabase/server'
 import type { InventoryItem, Language } from '@/lib/types'
 
-export async function POST(request: Request) {
+async function getSupabase() {
+  try {
+    const { createClient } = await import('@/lib/supabase/server')
+    return await createClient()
+  } catch {
+    return null
+  }
+}
+
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { lead_id, preferences, dealer_id, format } = body as {
@@ -29,7 +37,14 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabase = await createClient()
+    const supabase = await getSupabase()
+
+    if (!supabase) {
+      // Without DB, match against mock inventory using provided preferences
+      const { matchVehicles: mv } = await import('@/lib/ai/match')
+      const mockMatches = mv(preferences || {}, [])
+      return NextResponse.json({ success: true, matches: mockMatches, mock: true })
+    }
 
     // Resolve lead preferences
     let leadPrefs = preferences || {}

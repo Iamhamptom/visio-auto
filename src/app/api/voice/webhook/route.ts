@@ -1,6 +1,14 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { qualifyLead } from '@/lib/ai/qualify'
+
+async function getSupabase() {
+  try {
+    const { createClient } = await import('@/lib/supabase/server')
+    return await createClient()
+  } catch {
+    return null
+  }
+}
 
 interface RetellWebhookPayload {
   event: string
@@ -29,7 +37,7 @@ interface RetellWebhookPayload {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const payload = (await request.json()) as RetellWebhookPayload
 
@@ -50,7 +58,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true })
     }
 
-    const supabase = await createClient()
+    const supabase = await getSupabase()
+    if (!supabase) {
+      return NextResponse.json({ error: 'Database not configured' }, { status: 503 })
+    }
     const leadId = call.metadata?.lead_id
     const callId = call.call_id
 

@@ -169,7 +169,7 @@ export default function LandingPage() {
                 Dashboard
               </Button>
             </Link>
-            <Link href="/dashboard">
+            <Link href="/get-quote">
               <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-500">
                 Get Started
               </Button>
@@ -206,7 +206,7 @@ export default function LandingPage() {
           </p>
 
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link href="/dashboard">
+            <Link href="/get-quote">
               <Button size="lg" className="h-12 gap-2 bg-emerald-600 px-8 text-base text-white hover:bg-emerald-500">
                 Get Started
                 <ArrowRight className="h-4 w-4" />
@@ -422,7 +422,7 @@ export default function LandingPage() {
               buyer. Start your free trial today — no credit card required.
             </p>
             <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Link href="/dashboard">
+              <Link href="/get-quote">
                 <Button size="lg" className="h-12 gap-2 bg-emerald-600 px-8 text-base text-white hover:bg-emerald-500">
                   Start Free Trial
                   <ArrowRight className="h-4 w-4" />

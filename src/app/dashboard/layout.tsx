@@ -24,7 +24,7 @@ const navItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Leads", href: "/dashboard/leads", icon: Users },
   { label: "Signals", href: "/dashboard/signals", icon: Zap },
-  { label: "Market Terminal", href: "/dashboard/market", icon: BarChart3 },
+  { label: "Market Terminal", href: "/dashboard/terminal", icon: BarChart3 },
   { label: "Social Radar", href: "/dashboard/social", icon: Radio },
   { label: "Inventory", href: "/dashboard/inventory", icon: Package },
   { label: "Analytics", href: "/dashboard/analytics", icon: TrendingUp },

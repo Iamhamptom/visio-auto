@@ -1,8 +1,16 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { qualifyLead } from '@/lib/ai/qualify'
-import { createClient } from '@/lib/supabase/server'
 
-export async function POST(request: Request) {
+async function getSupabase() {
+  try {
+    const { createClient } = await import('@/lib/supabase/server')
+    return await createClient()
+  } catch {
+    return null
+  }
+}
+
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { messages, lead_id } = body as {
@@ -17,10 +25,11 @@ export async function POST(request: Request) {
       )
     }
 
+    const supabase = await getSupabase()
+
     // If lead_id is provided, fetch existing lead data for context
     let leadData = {}
-    if (lead_id) {
-      const supabase = await createClient()
+    if (lead_id && supabase) {
       const { data: lead } = await supabase
         .from('leads')
         .select('*')
@@ -35,8 +44,7 @@ export async function POST(request: Request) {
     const result = await qualifyLead(messages, leadData)
 
     // Update lead record if lead_id was provided
-    if (lead_id) {
-      const supabase = await createClient()
+    if (lead_id && supabase) {
       await supabase
         .from('leads')
         .update({

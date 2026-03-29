@@ -1,8 +1,16 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getAgentPrompt } from '@/lib/voice/agents'
 import { getLanguageName } from '@/lib/ai/multilingual'
 import type { Language } from '@/lib/types'
+
+async function getSupabase() {
+  try {
+    const { createClient } = await import('@/lib/supabase/server')
+    return await createClient()
+  } catch {
+    return null
+  }
+}
 
 type CallPurpose = 'qualify' | 'follow_up' | 'test_drive_confirm'
 
@@ -13,7 +21,7 @@ interface CallRequest {
   purpose: CallPurpose
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as CallRequest
 
@@ -35,7 +43,10 @@ export async function POST(request: Request) {
     }
 
     // Fetch lead data for context
-    const supabase = await createClient()
+    const supabase = await getSupabase()
+    if (!supabase) {
+      return NextResponse.json({ error: 'Database not configured' }, { status: 503 })
+    }
     const { data: lead } = await supabase
       .from('leads')
       .select('*')
@@ -132,7 +143,7 @@ function getRetellAgentId(purpose: CallPurpose): string {
 }
 
 async function logCallAttempt(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: NonNullable<Awaited<ReturnType<typeof getSupabase>>>,
   leadId: string,
   purpose: CallPurpose,
   language: Language,
