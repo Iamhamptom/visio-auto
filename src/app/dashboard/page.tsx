@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   Users,
   Flame,
@@ -16,6 +17,7 @@ import {
   ArrowDownRight,
   MessageCircle,
   Eye,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -348,11 +350,42 @@ function formatRand(amount: number) {
 }
 
 export default function DashboardOverview() {
+  const [leads, setLeads] = useState<Partial<Lead>[]>(recentLeads);
+  const [signals, setSignals] = useState<Partial<Signal>[]>(recentSignals);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.allSettled([
+      fetch("/api/leads?limit=10&sort=created_at")
+        .then((r) => r.json())
+        .then((json) => {
+          const rows = json.data ?? json.leads ?? [];
+          if (rows.length > 0) setLeads(rows);
+        }),
+      fetch("/api/signals?limit=5")
+        .then((r) => r.json())
+        .then((json) => {
+          const rows = json.data ?? json.signals ?? [];
+          if (rows.length > 0) setSignals(rows);
+        }),
+    ]).finally(() => setLoading(false));
+  }, []);
+
+  // Compute KPIs from live leads data
+  const computedKpis = leads.length > 0
+    ? kpis.map((kpi) => {
+        if (kpi.title === "Total Leads") return { ...kpi, value: String(leads.length) };
+        if (kpi.title === "Hot Leads")
+          return { ...kpi, value: String(leads.filter((l) => l.score_tier === "hot").length) };
+        return kpi;
+      })
+    : kpis;
+
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {kpis.map((kpi) => (
+        {computedKpis.map((kpi) => (
           <Card
             key={kpi.title}
             className="border-zinc-800/50 bg-zinc-900/50"
@@ -420,7 +453,14 @@ export default function DashboardOverview() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {recentLeads.map((lead) => (
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <Loader2 className="h-5 w-5 animate-spin text-zinc-500 mx-auto" />
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                  {!loading && leads.map((lead) => (
                     <TableRow
                       key={lead.id}
                       className="border-zinc-800/30 hover:bg-zinc-800/30 cursor-pointer"
@@ -475,7 +515,7 @@ export default function DashboardOverview() {
           </Card>
         </div>
 
-        {/* Live Signals Feed */}
+        {/* Live Signals Feed — uses signals state */}
         <div>
           <Card className="border-zinc-800/50 bg-zinc-900/50">
             <CardHeader className="flex-row items-center justify-between">
@@ -484,12 +524,12 @@ export default function DashboardOverview() {
                 <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
               </div>
               <Badge className="bg-emerald-500/10 text-emerald-400 ring-emerald-500/20 hover:bg-emerald-500/10">
-                {recentSignals.length} new
+                {signals.length} new
               </Badge>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentSignals.map((signal) => {
+                {signals.map((signal) => {
                   const Icon =
                     signalIcon[signal.signal_type || ""] || Zap;
                   return (

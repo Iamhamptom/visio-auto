@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Briefcase, UserPlus, TrendingUp, Users, UserCheck,
   Baby, Heart, GraduationCap, Cake, KeyRound,
@@ -262,34 +262,51 @@ function formatBudget(min: number | null, max: number | null) {
 // Page
 // ---------------------------------------------------------------------------
 export default function SignalsPage() {
+  const [allSignals, setAllSignals] = useState<Signal[]>(MOCK_SIGNALS)
+  const [loading, setLoading] = useState(true)
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [strengthFilter, setStrengthFilter] = useState<string>('all')
   const [areaSearch, setAreaSearch] = useState('')
 
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (typeFilter !== 'all') params.set('signal_type', typeFilter)
+    if (strengthFilter !== 'all') params.set('signal_strength', strengthFilter)
+    const url = `/api/signals${params.toString() ? `?${params}` : ''}`
+    fetch(url)
+      .then((r) => r.json())
+      .then((json) => {
+        const rows = json.data ?? json.signals ?? []
+        if (rows.length > 0) setAllSignals(rows)
+      })
+      .catch(() => {/* keep mock */})
+      .finally(() => setLoading(false))
+  }, [typeFilter, strengthFilter])
+
   const filtered = useMemo(() => {
-    let list = MOCK_SIGNALS
+    let list = allSignals
     if (typeFilter !== 'all') list = list.filter((s) => s.signal_type === typeFilter)
     if (strengthFilter !== 'all') list = list.filter((s) => s.signal_strength === strengthFilter)
     if (areaSearch) list = list.filter((s) => s.area?.toLowerCase().includes(areaSearch.toLowerCase()))
     return list
-  }, [typeFilter, strengthFilter, areaSearch])
+  }, [allSignals, typeFilter, strengthFilter, areaSearch])
 
   const stats = useMemo(() => {
-    const total = MOCK_SIGNALS.length
-    const strong = MOCK_SIGNALS.filter((s) => s.signal_strength === 'strong').length
-    const converted = MOCK_SIGNALS.filter((s) => s.converted_to_lead_id).length
+    const total = allSignals.length
+    const strong = allSignals.filter((s) => s.signal_strength === 'strong').length
+    const converted = allSignals.filter((s) => s.converted_to_lead_id).length
     const rate = total > 0 ? Math.round((converted / total) * 100) : 0
     return { total, strong, converted, rate }
-  }, [])
+  }, [allSignals])
 
   // Category counts for sidebar
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {}
-    for (const s of MOCK_SIGNALS) {
+    for (const s of allSignals) {
       counts[s.signal_type] = (counts[s.signal_type] || 0) + 1
     }
     return counts
-  }, [])
+  }, [allSignals])
 
   return (
     <div className="min-h-screen bg-background p-6 lg:p-8">
@@ -443,7 +460,30 @@ export default function SignalsPage() {
                       {/* Convert button */}
                       {!signal.converted_to_lead_id && (
                         <div className="mt-4 flex justify-end">
-                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                          <Button
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            onClick={() => {
+                              fetch('/api/signals/convert', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ signal_id: signal.id }),
+                              })
+                                .then((r) => r.json())
+                                .then((json) => {
+                                  if (json.lead_id || json.data?.id) {
+                                    setAllSignals((prev) =>
+                                      prev.map((s) =>
+                                        s.id === signal.id
+                                          ? { ...s, converted_to_lead_id: json.lead_id ?? json.data?.id }
+                                          : s
+                                      )
+                                    )
+                                  }
+                                })
+                                .catch(() => {/* ignore */})
+                            }}
+                          >
                             Convert to Lead <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                           </Button>
                         </div>

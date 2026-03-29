@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   TrendingUp,
   Users,
@@ -208,6 +208,33 @@ function formatRand(amount: number): string {
 
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState<"7d" | "30d" | "90d">("30d");
+  const [analyticsKpis, setAnalyticsKpis] = useState(kpis);
+  const [analyticsLeadsOverTime, setAnalyticsLeadsOverTime] = useState(leadsOverTime);
+  const [analyticsFunnel, setAnalyticsFunnel] = useState(funnelData);
+  const [analyticsScoreDist, setAnalyticsScoreDist] = useState(scoreDistribution);
+  const [analyticsSources, setAnalyticsSources] = useState(sourcesData);
+  const [analyticsAreas, setAnalyticsAreas] = useState(areasData);
+  const [analyticsBrands, setAnalyticsBrands] = useState(brandDemand);
+  const [analyticsMonthly, setAnalyticsMonthly] = useState(monthlyPerformance);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/analytics?period=${period}`)
+      .then((r) => r.json())
+      .then((json) => {
+        const d = json.data ?? json;
+        if (d.kpis?.length) setAnalyticsKpis(d.kpis);
+        if (d.leads_over_time?.length) setAnalyticsLeadsOverTime(d.leads_over_time);
+        if (d.funnel?.length) setAnalyticsFunnel(d.funnel);
+        if (d.score_distribution?.length) setAnalyticsScoreDist(d.score_distribution);
+        if (d.sources?.length) setAnalyticsSources(d.sources);
+        if (d.areas?.length) setAnalyticsAreas(d.areas);
+        if (d.brand_demand?.length) setAnalyticsBrands(d.brand_demand);
+        if (d.monthly_performance?.length) setAnalyticsMonthly(d.monthly_performance);
+      })
+      .catch(() => {/* keep mock */})
+      .finally(() => setLoading(false));
+  }, [period]);
 
   return (
     <div className="space-y-6">
@@ -249,7 +276,7 @@ export default function AnalyticsPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        {kpis.map((kpi) => (
+        {analyticsKpis.map((kpi) => (
           <Card
             key={kpi.label}
             className="border-zinc-800/50 bg-zinc-900/50"
@@ -297,7 +324,7 @@ export default function AnalyticsPage() {
         </CardHeader>
         <CardContent>
           <ChartContainer config={leadsChartConfig} className="h-[300px] w-full">
-            <LineChart data={leadsOverTime}>
+            <LineChart data={analyticsLeadsOverTime}>
               <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
               <XAxis
                 dataKey="date"
@@ -378,7 +405,7 @@ export default function AnalyticsPage() {
           <CardContent>
             <ChartContainer config={funnelConfig} className="h-[280px] w-full">
               <BarChart
-                data={funnelData}
+                data={analyticsFunnel}
                 layout="vertical"
                 margin={{ left: 10, right: 40 }}
               >
@@ -402,7 +429,7 @@ export default function AnalyticsPage() {
               </BarChart>
             </ChartContainer>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-              {funnelData.map(
+              {analyticsFunnel.map(
                 (stage) =>
                   stage.stepRate !== null && (
                     <div key={stage.stage} className="text-xs text-zinc-500">
@@ -430,7 +457,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={scoreConfig} className="h-[280px] w-full">
-              <BarChart data={scoreDistribution}>
+              <BarChart data={analyticsScoreDist}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                 <XAxis
                   dataKey="range"
@@ -445,7 +472,7 @@ export default function AnalyticsPage() {
                 />
                 <Tooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="count" radius={[6, 6, 0, 0]} barSize={40}>
-                  {scoreDistribution.map((entry) => (
+                  {analyticsScoreDist.map((entry) => (
                     <Cell key={entry.range} fill={entry.fill} />
                   ))}
                 </Bar>
@@ -476,7 +503,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={sourcesConfig} className="h-[240px] w-full">
-              <BarChart data={sourcesData}>
+              <BarChart data={analyticsSources}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                 <XAxis
                   dataKey="source"
@@ -512,7 +539,7 @@ export default function AnalyticsPage() {
           <CardContent>
             <ChartContainer config={areasConfig} className="h-[240px] w-full">
               <BarChart
-                data={areasData}
+                data={analyticsAreas}
                 layout="vertical"
                 margin={{ left: 0, right: 10 }}
               >
@@ -551,7 +578,7 @@ export default function AnalyticsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={brandDemand}
+                    data={analyticsBrands}
                     dataKey="pct"
                     nameKey="brand"
                     cx="50%"
@@ -561,7 +588,7 @@ export default function AnalyticsPage() {
                     strokeWidth={2}
                     stroke="#18181b"
                   >
-                    {brandDemand.map((entry) => (
+                    {analyticsBrands.map((entry) => (
                       <Cell key={entry.brand} fill={entry.fill} />
                     ))}
                   </Pie>
@@ -628,8 +655,8 @@ export default function AnalyticsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {monthlyPerformance.map((row, i) => {
-                const prevLeads = i > 0 ? monthlyPerformance[i - 1].leads : row.leads;
+              {analyticsMonthly.map((row, i) => {
+                const prevLeads = i > 0 ? analyticsMonthly[i - 1].leads : row.leads;
                 const leadsTrend = row.leads >= prevLeads;
                 return (
                   <TableRow
@@ -685,20 +712,20 @@ export default function AnalyticsPage() {
             <div className="text-xs text-zinc-500">
               Total Leads:{" "}
               <span className="font-mono text-zinc-200">
-                {monthlyPerformance.reduce((s, r) => s + r.leads, 0)}
+                {analyticsMonthly.reduce((s, r) => s + r.leads, 0)}
               </span>
             </div>
             <div className="text-xs text-zinc-500">
               Total Sales:{" "}
               <span className="font-mono text-emerald-400">
-                {monthlyPerformance.reduce((s, r) => s + r.sales, 0)}
+                {analyticsMonthly.reduce((s, r) => s + r.sales, 0)}
               </span>
             </div>
             <div className="text-xs text-zinc-500">
               Total Revenue:{" "}
               <span className="font-mono text-zinc-200">
                 {formatRand(
-                  monthlyPerformance.reduce((s, r) => s + r.revenue, 0)
+                  analyticsMonthly.reduce((s, r) => s + r.revenue, 0)
                 )}
               </span>
             </div>
@@ -706,8 +733,8 @@ export default function AnalyticsPage() {
               Avg ROI:{" "}
               <span className="font-mono text-emerald-400">
                 {Math.round(
-                  monthlyPerformance.reduce((s, r) => s + r.roi, 0) /
-                    monthlyPerformance.length
+                  analyticsMonthly.reduce((s, r) => s + r.roi, 0) /
+                    analyticsMonthly.length
                 )}
                 %
               </span>

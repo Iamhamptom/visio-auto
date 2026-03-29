@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   ArrowRight, MessageCircle, Hash, TrendingUp,
   Video, Globe, Camera, Briefcase, Play,
@@ -236,45 +236,61 @@ function timeAgo(dateStr: string) {
 // Page
 // ---------------------------------------------------------------------------
 export default function SocialRadarPage() {
+  const [allSignals, setAllSignals] = useState<SocialSignal[]>(MOCK_SIGNALS)
+  const [loading, setLoading] = useState(true)
   const [platformFilter, setPlatformFilter] = useState<string>('all')
 
-  const filtered = useMemo(() => {
-    if (platformFilter === 'all') return MOCK_SIGNALS
-    return MOCK_SIGNALS.filter((s) => s.platform === platformFilter)
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (platformFilter !== 'all') params.set('platform', platformFilter)
+    const url = `/api/social${params.toString() ? `?${params}` : ''}`
+    fetch(url)
+      .then((r) => r.json())
+      .then((json) => {
+        const rows = json.data ?? json.signals ?? []
+        if (rows.length > 0) setAllSignals(rows)
+      })
+      .catch(() => {/* keep mock */})
+      .finally(() => setLoading(false))
   }, [platformFilter])
+
+  const filtered = useMemo(() => {
+    if (platformFilter === 'all') return allSignals
+    return allSignals.filter((s) => s.platform === platformFilter)
+  }, [platformFilter, allSignals])
 
   // Platform stats
   const platformStats = useMemo(() => {
     const counts: Record<string, number> = {}
-    for (const s of MOCK_SIGNALS) {
+    for (const s of allSignals) {
       counts[s.platform] = (counts[s.platform] || 0) + 1
     }
     return counts
-  }, [])
+  }, [allSignals])
 
   // Trending brands
   const trendingBrands = useMemo(() => {
     const counts: Record<string, number> = {}
-    for (const s of MOCK_SIGNALS) {
+    for (const s of allSignals) {
       if (s.brand_mentioned) counts[s.brand_mentioned] = (counts[s.brand_mentioned] || 0) + 1
     }
     return Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)
-  }, [])
+  }, [allSignals])
 
   // Trending models
   const trendingModels = useMemo(() => {
     const counts: Record<string, number> = {}
-    for (const s of MOCK_SIGNALS) {
+    for (const s of allSignals) {
       if (s.model_mentioned) counts[s.model_mentioned] = (counts[s.model_mentioned] || 0) + 1
     }
     return Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)
-  }, [])
+  }, [allSignals])
 
-  const totalSignals = MOCK_SIGNALS.length
+  const totalSignals = allSignals.length
 
   return (
     <div className="min-h-screen bg-background p-6 lg:p-8">

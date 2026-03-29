@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Package,
   LayoutGrid,
@@ -180,6 +180,8 @@ function formatMileage(km: number): string {
 }
 
 export default function InventoryPage() {
+  const [allVehicles, setAllVehicles] = useState<Vehicle[]>(vehicles);
+  const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [brandFilter, setBrandFilter] = useState("all");
@@ -188,8 +190,24 @@ export default function InventoryPage() {
   const [sortBy, setSortBy] = useState("days_on_lot");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (brandFilter !== "all") params.set("brand", brandFilter);
+    if (conditionFilter !== "all") params.set("condition", conditionFilter);
+    if (typeFilter !== "all") params.set("vehicle_type", typeFilter);
+    const url = `/api/inventory${params.toString() ? `?${params}` : ""}`;
+    fetch(url)
+      .then((r) => r.json())
+      .then((json) => {
+        const rows = json.data ?? json.vehicles ?? json.inventory ?? [];
+        if (rows.length > 0) setAllVehicles(rows);
+      })
+      .catch(() => {/* keep mock */})
+      .finally(() => setLoading(false));
+  }, [brandFilter, conditionFilter, typeFilter]);
+
   // Apply filters
-  let filtered = vehicles.filter((v) => {
+  let filtered = allVehicles.filter((v) => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       if (
@@ -220,8 +238,8 @@ export default function InventoryPage() {
     slowMovers: filtered.filter((v) => v.days_on_lot > 30).length,
   };
 
-  const brands = [...new Set(vehicles.map((v) => v.brand))].sort();
-  const types = [...new Set(vehicles.map((v) => v.vehicle_type))].sort();
+  const brands = [...new Set(allVehicles.map((v) => v.brand))].sort();
+  const types = [...new Set(allVehicles.map((v) => v.vehicle_type))].sort();
 
   return (
     <div className="space-y-6">
@@ -230,7 +248,7 @@ export default function InventoryPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Inventory</h1>
           <p className="text-sm text-zinc-400">
-            Manage your digital showroom — {vehicles.length} vehicles
+            Manage your digital showroom — {allVehicles.length} vehicles
           </p>
         </div>
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>

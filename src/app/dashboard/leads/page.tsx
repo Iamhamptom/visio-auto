@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -10,6 +10,7 @@ import {
   Eye,
   ArrowUpDown,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
 import {
   Card,
@@ -466,11 +467,28 @@ function formatTimeline(tl: string) {
 }
 
 export default function LeadsPage() {
+  const [allLeads, setAllLeads] = useState<Partial<Lead>[]>(mockLeads);
+  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filtered = mockLeads.filter((lead) => {
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (statusFilter !== "all") params.set("status", statusFilter);
+    if (tierFilter !== "all") params.set("score_tier", tierFilter);
+    const url = `/api/leads${params.toString() ? `?${params}` : ""}`;
+    fetch(url)
+      .then((r) => r.json())
+      .then((json) => {
+        const rows = json.data ?? json.leads ?? [];
+        if (rows.length > 0) setAllLeads(rows);
+      })
+      .catch(() => {/* keep mock data */})
+      .finally(() => setLoading(false));
+  }, [statusFilter, tierFilter]);
+
+  const filtered = allLeads.filter((lead) => {
     if (statusFilter !== "all" && lead.status !== statusFilter) return false;
     if (tierFilter !== "all" && lead.score_tier !== tierFilter) return false;
     if (
@@ -490,7 +508,7 @@ export default function LeadsPage() {
         <div>
           <h1 className="text-xl font-semibold text-white">Leads</h1>
           <p className="text-sm text-zinc-500">
-            {mockLeads.length} total leads &middot; {mockLeads.filter((l) => l.score_tier === "hot").length} hot
+            {allLeads.length} total leads &middot; {allLeads.filter((l) => l.score_tier === "hot").length} hot
           </p>
         </div>
         <Button
@@ -592,7 +610,14 @@ export default function LeadsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((lead) => (
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={13} className="text-center py-8">
+                    <Loader2 className="h-5 w-5 animate-spin text-zinc-500 mx-auto" />
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && filtered.map((lead) => (
                 <TableRow
                   key={lead.id}
                   className="border-zinc-800/30 hover:bg-zinc-800/30 cursor-pointer"

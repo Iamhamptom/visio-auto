@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -256,7 +256,36 @@ export default function LeadDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const lead = leadsMap[id] || defaultLead;
+  const [lead, setLead] = useState(leadsMap[id] || defaultLead);
+  const [vehicles, setVehicles] = useState(matchedVehicles);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch lead detail
+    fetch(`/api/leads/${id}`)
+      .then((r) => r.json())
+      .then((json) => {
+        const row = json.data ?? json.lead ?? json;
+        if (row && row.id) {
+          setLead((prev: typeof lead) => ({ ...prev, ...row }));
+        }
+      })
+      .catch(() => {/* keep mock */});
+
+    // Fetch matched vehicles
+    fetch("/api/inventory/match", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lead_id: id }),
+    })
+      .then((r) => r.json())
+      .then((json) => {
+        const rows = json.data ?? json.vehicles ?? [];
+        if (rows.length > 0) setVehicles(rows);
+      })
+      .catch(() => {/* keep mock */})
+      .finally(() => setLoading(false));
+  }, [id]);
 
   return (
     <div className="space-y-6">
@@ -457,12 +486,12 @@ export default function LeadDetailPage({
       <Card className="border-zinc-800/50 bg-zinc-900/50">
         <CardHeader>
           <CardTitle className="text-white">
-            Matched Vehicles ({matchedVehicles.length})
+            Matched Vehicles ({vehicles.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
-            {matchedVehicles.map((v) => (
+            {vehicles.map((v) => (
               <div
                 key={v.id}
                 className="rounded-xl border border-zinc-800/50 bg-zinc-950/50 p-4"
