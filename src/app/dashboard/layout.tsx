@@ -10,6 +10,7 @@ import {
   Radio,
   Package,
   TrendingUp,
+  Plug,
   Settings,
   Bell,
   Car,
@@ -28,6 +29,7 @@ const navItems = [
   { label: "Social Radar", href: "/dashboard/social", icon: Radio },
   { label: "Inventory", href: "/dashboard/inventory", icon: Package },
   { label: "Analytics", href: "/dashboard/analytics", icon: TrendingUp },
+  { label: "Integrations", href: "/dashboard/integrations", icon: Plug },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 

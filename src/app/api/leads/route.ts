@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { scoreLead } from '@/lib/ai/scoring'
+import { autoAssignLead } from '@/lib/leads/auto-assign'
+import { notifyDealer } from '@/lib/leads/auto-notify'
 import type { Lead, ScoreTier } from '@/lib/types'
 
 // ---------------------------------------------------------------------------
@@ -190,10 +192,56 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (!error && inserted) {
+        // Auto-assign to best matching dealer
+        let assignment: { dealer_id: string; dealer_name: string; reason: string } | null = null
+        let notification: { whatsapp_sent: boolean; email_prepared: boolean } | null = null
+
+        try {
+          assignment = await autoAssignLead({
+            id: inserted.id,
+            preferred_brand: inserted.preferred_brand,
+            area: inserted.area,
+            city: inserted.city,
+            score_tier: inserted.score_tier,
+          })
+
+          // Notify the assigned dealer
+          if (assignment) {
+            const { data: dealer } = await supabase
+              .from('dealers')
+              .select('id, name, whatsapp_number, email')
+              .eq('id', assignment.dealer_id)
+              .single()
+
+            if (dealer) {
+              notification = await notifyDealer(dealer, inserted)
+            }
+          }
+        } catch (err) {
+          console.error('[Leads POST] Auto-assign/notify error (non-fatal):', err)
+        }
+
+        // If source is signal_engine and source_detail has signal info, link back
+        if (data.source === 'signal_engine' && data.source_detail) {
+          try {
+            const signalMatch = data.source_detail.match(/signal:(\S+)/)
+            if (signalMatch?.[1]) {
+              await supabase
+                .from('signals')
+                .update({ converted_to_lead_id: inserted.id, is_processed: true })
+                .eq('id', signalMatch[1])
+            }
+          } catch {
+            // Signal linkback is non-fatal
+          }
+        }
+
         return NextResponse.json({
           lead: inserted,
           ai_score: score,
           score_tier: tier,
+          assignment: assignment ? { dealer_id: assignment.dealer_id, dealer_name: assignment.dealer_name, reason: assignment.reason } : null,
+          notification: notification ?? null,
         }, { status: 201 })
       }
     } catch {
