@@ -1,5 +1,5 @@
 import { generateText } from 'ai'
-import { google } from '@ai-sdk/google'
+import { anthropic } from '@ai-sdk/anthropic'
 import { detectLanguage, parseBudgetFromText } from '@/lib/ai/multilingual'
 import type { Lead, Language, ScoreTier, VehicleType } from '@/lib/types'
 
@@ -75,7 +75,7 @@ export async function qualifyLead(
   const existingDataContext = buildExistingDataContext(leadData)
 
   const { text } = await generateText({
-    model: google('gemini-2.5-flash-preview-05-20'),
+    model: anthropic('claude-haiku-4-5-20251001'), // Haiku for speed on high-volume qualification
     system: SYSTEM_PROMPT,
     prompt: `Analyze this conversation and extract qualification data.
 

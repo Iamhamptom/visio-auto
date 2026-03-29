@@ -7,7 +7,7 @@
  */
 
 import { generateText } from 'ai'
-import { google } from '@ai-sdk/google'
+import { anthropic } from '@ai-sdk/anthropic'
 import type { Signal, Dealer } from '@/lib/types'
 import {
   ENRICHMENT_PROMPT,
@@ -58,7 +58,8 @@ export interface UrgencyClassification {
 // Model — Gemini 2.5 Flash for speed + cost efficiency
 // ---------------------------------------------------------------------------
 
-const MODEL = google('gemini-2.5-flash-preview-05-20')
+// Signal intelligence uses Claude Sonnet for reasoning
+const MODEL = anthropic('claude-sonnet-4-6')
 
 // ---------------------------------------------------------------------------
 // Core Agent Functions
