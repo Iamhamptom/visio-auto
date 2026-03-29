@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch the signal
     const { data: signal, error: fetchError } = await supabase
-      .from('signals')
+      .from('va_signals')
       .select('*')
       .eq('id', signal_id)
       .single()
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     // Create a lead from the signal
     const { data: lead, error: leadError } = await supabase
-      .from('leads')
+      .from('va_leads')
       .insert({
         name: signal.person_name ?? signal.company_name ?? 'Unknown',
         phone: signal.person_phone ?? '',
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     // Update the signal as converted
     await supabase
-      .from('signals')
+      .from('va_signals')
       .update({
         converted_to_lead_id: lead.id,
         is_processed: true,

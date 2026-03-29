@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     // Find unprocessed signals with high buying probability
     const { data: signals, error } = await supabase
-      .from('signals')
+      .from('va_signals')
       .select('*')
       .eq('is_processed', false)
       .is('converted_to_lead_id', null)
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 
         // Create a lead from the signal
         const { data: lead, error: leadError } = await supabase
-          .from('leads')
+          .from('va_leads')
           .insert({
             name: signal.person_name ?? signal.company_name ?? 'Unknown',
             phone: signal.person_phone ?? '',
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
 
         // Mark signal as processed
         await supabase
-          .from('signals')
+          .from('va_signals')
           .update({
             converted_to_lead_id: lead.id,
             is_processed: true,
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
 
           // Notify the assigned dealer
           const { data: dealer } = await supabase
-            .from('dealers')
+            .from('va_dealers')
             .select('id, name, whatsapp_number, email')
             .eq('id', assignment.dealer_id)
             .single()

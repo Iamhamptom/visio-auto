@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     if (lead_id) {
       const { data: lead } = await supabase
-        .from('leads')
+        .from('va_leads')
         .select('*')
         .eq('id', lead_id)
         .single()
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch inventory
     let inventoryQuery = supabase
-      .from('inventory')
+      .from('va_inventory')
       .select('*')
       .eq('is_available', true)
 
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     if (lead_id && matches.length > 0) {
       const topMatch = matches[0].vehicle
       await supabase
-        .from('leads')
+        .from('va_leads')
         .update({
           matched_vin: topMatch.vin,
           matched_vehicle: `${topMatch.year} ${topMatch.brand} ${topMatch.model}`,

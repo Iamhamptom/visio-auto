@@ -38,7 +38,7 @@ export async function calculateDealerAnalytics(
 
     // Fetch all leads for this dealer in the period
     const { data: leads, error } = await supabase
-      .from('leads')
+      .from('va_leads')
       .select('*')
       .eq('assigned_dealer_id', dealer_id)
       .gte('created_at', startDate)
@@ -126,7 +126,7 @@ export async function calculateDealerAnalytics(
 
     // Upsert into va_analytics
     const { data: upserted, error: upsertError } = await supabase
-      .from('analytics')
+      .from('va_analytics')
       .upsert(
         { ...analytics },
         { onConflict: 'dealer_id,period' }
@@ -165,13 +165,13 @@ export async function calculatePlatformAnalytics(
     const endDate = new Date(year, month, 0, 23, 59, 59, 999).toISOString()
 
     // Fetch all dealers
-    const { data: dealers } = await supabase.from('dealers').select('id, is_active')
+    const { data: dealers } = await supabase.from('va_dealers').select('id, is_active')
     const total_dealers = dealers?.length ?? 0
     const active_dealers = dealers?.filter((d) => d.is_active).length ?? 0
 
     // Fetch all leads in the period
     const { data: leads, error } = await supabase
-      .from('leads')
+      .from('va_leads')
       .select('*')
       .gte('created_at', startDate)
       .lte('created_at', endDate)

@@ -38,28 +38,28 @@ export async function POST(request: NextRequest) {
 
     // Total leads
     const { count: leadCount } = await supabase
-      .from('leads')
+      .from('va_leads')
       .select('*', { count: 'exact', head: true })
     metrics.total_leads = leadCount || 0
 
     // Active dealers
     const { count: dealerCount } = await supabase
-      .from('dealers')
+      .from('va_dealers')
       .select('*', { count: 'exact', head: true })
       .eq('is_active', true)
     metrics.active_dealers = dealerCount || 0
 
     // Score distribution
     const { count: hotCount } = await supabase
-      .from('leads')
+      .from('va_leads')
       .select('*', { count: 'exact', head: true })
       .eq('score_tier', 'hot')
     const { count: warmCount } = await supabase
-      .from('leads')
+      .from('va_leads')
       .select('*', { count: 'exact', head: true })
       .eq('score_tier', 'warm')
     const { count: coldCount } = await supabase
-      .from('leads')
+      .from('va_leads')
       .select('*', { count: 'exact', head: true })
       .eq('score_tier', 'cold')
 
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     // Revenue from sold leads
     const { data: soldLeads } = await supabase
-      .from('leads')
+      .from('va_leads')
       .select('sale_amount')
       .eq('status', 'sold')
       .not('sale_amount', 'is', null)
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     // Conversion rate
     if (metrics.total_leads > 0) {
       const { count: soldCount } = await supabase
-        .from('leads')
+        .from('va_leads')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'sold')
       metrics.conversion_rate = ((soldCount || 0) / metrics.total_leads) * 100

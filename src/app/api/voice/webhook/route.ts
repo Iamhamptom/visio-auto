@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     // Update voice_calls record
     await supabase
-      .from('voice_calls')
+      .from('va_voice_calls')
       .update({
         status: call.call_status === 'ended' ? 'completed' : 'error',
         duration_seconds: durationSeconds,
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
 
         // Update lead with qualification results
         await supabase
-          .from('leads')
+          .from('va_leads')
           .update({
             ai_score: qualification.score,
             score_tier: qualification.tier,
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
         const callSummary = call.call_analysis?.call_summary
           || `Voice call completed (${durationSeconds}s). Score: ${qualification.score}/100 (${qualification.tier}).`
 
-        await supabase.from('whatsapp_messages').insert({
+        await supabase.from('va_whatsapp_convos').insert({
           lead_id: leadId,
           direction: 'system',
           message_type: 'voice_call_summary',

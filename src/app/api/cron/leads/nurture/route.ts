@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch leads that are 'new' or 'contacted' and need nurturing
     const { data: leads, error } = await supabase
-      .from('leads')
+      .from('va_leads')
       .select('*')
       .in('status', ['new', 'contacted'])
       .order('created_at', { ascending: true })
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     const dealerMap: Record<string, string> = {}
     if (dealerIds.length > 0) {
       const { data: dealers } = await supabase
-        .from('dealers')
+        .from('va_dealers')
         .select('id, name')
         .in('id', dealerIds)
 
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
           updates.contacted_at = now.toISOString()
         }
 
-        await supabase.from('leads').update(updates).eq('id', lead.id)
+        await supabase.from('va_leads').update(updates).eq('id', lead.id)
       } catch (err) {
         console.error(`[Nurture] Error processing lead ${lead.id}:`, err)
         results.errors++

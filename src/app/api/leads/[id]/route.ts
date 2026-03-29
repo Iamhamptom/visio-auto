@@ -57,7 +57,7 @@ export async function GET(
   if (supabase) {
     try {
       const { data, error } = await supabase
-        .from('leads')
+        .from('va_leads')
         .select('*')
         .eq('id', id)
         .single()
@@ -114,7 +114,7 @@ export async function PATCH(
   if (supabase) {
     try {
       const { data, error } = await supabase
-        .from('leads')
+        .from('va_leads')
         .update(updates)
         .eq('id', id)
         .select()

@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
 
       // Insert batch
       const { data: inserted, error: insertError } = await supabase
-        .from('leads')
+        .from('va_leads')
         .insert(validRows)
         .select('id, preferred_brand, area, city, score_tier')
 

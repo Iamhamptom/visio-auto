@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 503 })
     }
     const { data: lead } = await supabase
-      .from('leads')
+      .from('va_leads')
       .select('*')
       .eq('id', lead_id)
       .single()
@@ -150,7 +150,7 @@ async function logCallAttempt(
   status: string,
   callId?: string
 ) {
-  await supabase.from('voice_calls').insert({
+  await supabase.from('va_voice_calls').insert({
     lead_id: leadId,
     purpose,
     language,

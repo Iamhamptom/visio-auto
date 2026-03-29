@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch leads older than 7 days that are still active
     const { data: leads, error } = await supabase
-      .from('leads')
+      .from('va_leads')
       .select('*')
       .in('status', ['new', 'contacted', 'qualified', 'test_drive_booked'])
       .lte('created_at', sevenDaysAgo)
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     // Check for leads that have appeared in recent social signals
     const { data: socialSignals } = await supabase
-      .from('social_signals')
+      .from('va_social_signals')
       .select('person_name, brand_mentioned')
       .eq('is_processed', false)
       .gte('created_at', sevenDaysAgo)
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
         else downgraded++
 
         await supabase
-          .from('leads')
+          .from('va_leads')
           .update({
             ai_score: adjustedScore,
             score_tier: newTier,

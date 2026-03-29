@@ -17,7 +17,7 @@ export async function GET() {
     const supabase = createServiceClient()
 
     const { count } = await supabase
-      .from('leads')
+      .from('va_leads')
       .select('*', { count: 'exact', head: true })
       .eq('source', 'vprai')
 
@@ -25,7 +25,7 @@ export async function GET() {
 
     // Get most recent vprai lead for "last sync" time
     const { data: latest } = await supabase
-      .from('leads')
+      .from('va_leads')
       .select('created_at')
       .eq('source', 'vprai')
       .order('created_at', { ascending: false })

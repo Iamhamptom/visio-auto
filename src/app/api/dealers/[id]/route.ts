@@ -253,7 +253,7 @@ export async function PATCH(
   }
 
   // TODO: Update in Supabase
-  // const { data, error } = await supabase.from('dealers').update(updated).eq('id', id).select().single()
+  // const { data, error } = await supabase.from('va_dealers').update(updated).eq('id', id).select().single()
 
   return NextResponse.json({
     dealer: updated,

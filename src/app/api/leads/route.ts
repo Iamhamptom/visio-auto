@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
   if (supabase) {
     try {
       let query = supabase
-        .from('leads')
+        .from('va_leads')
         .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1)
@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
   if (supabase) {
     try {
       const { data: inserted, error } = await supabase
-        .from('leads')
+        .from('va_leads')
         .insert(leadRow)
         .select()
         .single()
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
           // Notify the assigned dealer
           if (assignment) {
             const { data: dealer } = await supabase
-              .from('dealers')
+              .from('va_dealers')
               .select('id, name, whatsapp_number, email')
               .eq('id', assignment.dealer_id)
               .single()
@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
             const signalMatch = data.source_detail.match(/signal:(\S+)/)
             if (signalMatch?.[1]) {
               await supabase
-                .from('signals')
+                .from('va_signals')
                 .update({ converted_to_lead_id: inserted.id, is_processed: true })
                 .eq('id', signalMatch[1])
             }

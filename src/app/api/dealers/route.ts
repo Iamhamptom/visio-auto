@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
   }
 
   // TODO: Insert into Supabase
-  // const { data: inserted, error } = await supabase.from('dealers').insert(newDealer).select().single()
+  // const { data: inserted, error } = await supabase.from('va_dealers').insert(newDealer).select().single()
 
   return NextResponse.json(
     {

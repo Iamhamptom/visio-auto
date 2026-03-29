@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     let leadData = {}
     if (lead_id && supabase) {
       const { data: lead } = await supabase
-        .from('leads')
+        .from('va_leads')
         .select('*')
         .eq('id', lead_id)
         .single()
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     // Update lead record if lead_id was provided
     if (lead_id && supabase) {
       await supabase
-        .from('leads')
+        .from('va_leads')
         .update({
           ai_score: result.score,
           score_tier: result.tier,

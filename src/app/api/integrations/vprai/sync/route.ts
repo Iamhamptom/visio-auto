@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
         // Deduplicate by phone
         if (vpLead.phone) {
           const { data: existing } = await supabase
-            .from('leads')
+            .from('va_leads')
             .select('id')
             .eq('phone', vpLead.phone)
             .limit(1)
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
         // Also deduplicate by email
         if (vpLead.email) {
           const { data: existing } = await supabase
-            .from('leads')
+            .from('va_leads')
             .select('id')
             .eq('email', vpLead.email)
             .limit(1)
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
           source: 'vprai',
         })
 
-        const { error: insertErr } = await supabase.from('leads').insert({
+        const { error: insertErr } = await supabase.from('va_leads').insert({
           ...mapped,
           ai_score: score,
           score_tier: tier,
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
     if (body.lead_ids && body.lead_ids.length > 0) {
       // Push specific leads
       const { data, error } = await supabase
-        .from('leads')
+        .from('va_leads')
         .select('*')
         .in('id', body.lead_ids)
 
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
       // Push recent leads not from vprai (avoid loops)
       const since = body.since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
       const { data, error } = await supabase
-        .from('leads')
+        .from('va_leads')
         .select('*')
         .neq('source', 'vprai')
         .neq('source', 'workspace')

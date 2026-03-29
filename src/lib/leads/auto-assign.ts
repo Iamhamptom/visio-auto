@@ -31,7 +31,7 @@ export async function autoAssignLead(
 
     // Fetch active dealers with their current lead counts
     const { data: dealers, error } = await supabase
-      .from('dealers')
+      .from('va_dealers')
       .select('*')
       .eq('is_active', true)
       .order('created_at', { ascending: true })
@@ -47,7 +47,7 @@ export async function autoAssignLead(
     startOfMonth.setHours(0, 0, 0, 0)
 
     const { data: leadCounts } = await supabase
-      .from('leads')
+      .from('va_leads')
       .select('assigned_dealer_id')
       .not('assigned_dealer_id', 'is', null)
       .gte('created_at', startOfMonth.toISOString())
@@ -129,7 +129,7 @@ export async function autoAssignLead(
 
     // Update the lead's assigned_dealer_id in Supabase
     const { error: updateError } = await supabase
-      .from('leads')
+      .from('va_leads')
       .update({ assigned_dealer_id: best.dealer.id })
       .eq('id', lead.id)
 

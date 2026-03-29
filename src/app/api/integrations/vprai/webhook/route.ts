@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
         // Deduplicate by phone number
         if (vpLead.phone) {
           const { data: existing } = await supabase
-            .from('leads')
+            .from('va_leads')
             .select('id')
             .eq('phone', vpLead.phone)
             .eq('source', 'vprai')
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
 
         // Auto-assign to a dealer (round-robin by area)
         const { data: dealers } = await supabase
-          .from('dealers')
+          .from('va_dealers')
           .select('id')
           .eq('is_active', true)
           .limit(1)
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
         }
 
         const { data: inserted, error } = await supabase
-          .from('leads')
+          .from('va_leads')
           .insert(leadRow)
           .select('id')
           .single()

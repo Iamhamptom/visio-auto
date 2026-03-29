@@ -338,7 +338,7 @@ export async function POST() {
   const leads = buildLeads()
 
   // TODO: Insert into Supabase
-  // const { error } = await supabase.from('leads').upsert(leads, { onConflict: 'id' })
+  // const { error } = await supabase.from('va_leads').upsert(leads, { onConflict: 'id' })
 
   // Summary stats
   const byStatus = leads.reduce<Record<string, number>>((acc, l) => {

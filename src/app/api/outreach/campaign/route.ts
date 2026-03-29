@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
   }
 
   // TODO: Fetch dealers from Supabase
-  // const { data: dealers } = await supabase.from('dealers').select('*').in('id', dealer_ids)
+  // const { data: dealers } = await supabase.from('va_dealers').select('*').in('id', dealer_ids)
 
   const emails: Array<{
     dealer_id: string

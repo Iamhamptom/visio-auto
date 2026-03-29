@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch all active dealers
     const { data: dealers, error } = await supabase
-      .from('dealers')
+      .from('va_dealers')
       .select('id, name')
       .eq('is_active', true)
 

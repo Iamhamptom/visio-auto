@@ -66,7 +66,7 @@ async function findLeadByPhone(phone: string): Promise<Lead | null> {
   if (supabase) {
     try {
       const { data } = await supabase
-        .from('leads')
+        .from('va_leads')
         .select('*')
         .eq('phone', phone)
         .order('created_at', { ascending: false })
@@ -118,7 +118,7 @@ async function createLeadFromWhatsApp(
   if (supabase) {
     try {
       const { data, error } = await supabase
-        .from('leads')
+        .from('va_leads')
         .insert(leadRow)
         .select()
         .single()

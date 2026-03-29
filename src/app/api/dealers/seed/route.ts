@@ -157,7 +157,7 @@ export async function POST() {
   // const batchSize = 25
   // for (let i = 0; i < dealers.length; i += batchSize) {
   //   const batch = dealers.slice(i, i + batchSize)
-  //   const { error } = await supabase.from('dealers').upsert(batch, { onConflict: 'id' })
+  //   const { error } = await supabase.from('va_dealers').upsert(batch, { onConflict: 'id' })
   //   if (error) throw error
   // }
 

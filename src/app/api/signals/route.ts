@@ -376,7 +376,7 @@ export async function GET(request: NextRequest) {
     const { createClient } = await import('@/lib/supabase/server')
     const supabase = await createClient()
 
-    let query = supabase.from('signals').select('*', { count: 'exact' })
+    let query = supabase.from('va_signals').select('*', { count: 'exact' })
 
     if (type) query = query.eq('signal_type', type)
     if (strength) query = query.eq('signal_strength', strength)
@@ -410,7 +410,7 @@ export async function POST(request: NextRequest) {
     const { createClient } = await import('@/lib/supabase/server')
     const supabase = await createClient()
 
-    const { data, error } = await supabase.from('signals').insert(body).select().single()
+    const { data, error } = await supabase.from('va_signals').insert(body).select().single()
 
     if (error) throw error
 
