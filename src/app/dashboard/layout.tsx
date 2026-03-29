@@ -13,6 +13,7 @@ import {
   Plug,
   Send,
   Presentation,
+  FileText,
   Settings,
   Bell,
   Car,
@@ -34,6 +35,7 @@ const navItems = [
   { label: "Integrations", href: "/dashboard/integrations", icon: Plug },
   { label: "Outreach", href: "/dashboard/outreach", icon: Send },
   { label: "Pitch Builder", href: "/dashboard/pitch", icon: Presentation },
+  { label: "Reports", href: "/dashboard/reports", icon: FileText },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 

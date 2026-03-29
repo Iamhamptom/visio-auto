@@ -23,6 +23,18 @@
     {
       "path": "/api/cron/signals/enrich",
       "schedule": "30 */6 * * *"
+    },
+    {
+      "path": "/api/cron/signals/rss",
+      "schedule": "0 */2 * * *"
+    },
+    {
+      "path": "/api/cron/leads/enrich",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/reports/monthly",
+      "schedule": "0 6 1 * *"
     }
   ]
 }

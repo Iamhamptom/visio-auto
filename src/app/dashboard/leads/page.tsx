@@ -515,6 +515,12 @@ export default function LeadsPage() {
           variant="outline"
           size="sm"
           className="gap-2 border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+          onClick={() => {
+            const params = new URLSearchParams({ format: "csv" });
+            if (statusFilter !== "all") params.set("status", statusFilter);
+            if (tierFilter !== "all") params.set("score_tier", tierFilter);
+            window.open(`/api/leads/export?${params}`, "_blank");
+          }}
         >
           <Download className="h-3.5 w-3.5" />
           Export CSV

@@ -99,6 +99,7 @@ const DEALERSHIP_DATA: DealerSeed[] = [
 // ---------------------------------------------------------------------------
 
 const TIER_PRICING: Record<DealerTier, { fee: number; quota: number }> = {
+  free: { fee: 0, quota: 5 },
   starter: { fee: 7500, quota: 50 },
   growth: { fee: 15000, quota: 100 },
   pro: { fee: 25000, quota: 200 },

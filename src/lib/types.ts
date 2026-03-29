@@ -1,4 +1,4 @@
-export type DealerTier = 'starter' | 'growth' | 'pro' | 'enterprise'
+export type DealerTier = 'free' | 'starter' | 'growth' | 'pro' | 'enterprise'
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'test_drive_booked' | 'test_drive_done' | 'negotiating' | 'sold' | 'lost' | 'inactive'
 export type ScoreTier = 'hot' | 'warm' | 'cold'
 export type VehicleType = 'sedan' | 'suv' | 'bakkie' | 'hatch' | 'coupe' | 'van' | 'any'
