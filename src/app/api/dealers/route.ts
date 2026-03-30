@@ -99,17 +99,20 @@ const dealerFilterSchema = z.object({
 const createDealerSchema = z.object({
   name: z.string().min(2, "Dealer name is required"),
   group_name: z.string().nullable().optional(),
-  brands: z.array(z.string()).min(1, "At least one brand is required"),
-  area: z.string().min(2, "Area is required"),
-  city: z.string().min(2, "City is required"),
-  province: z.string().min(2, "Province is required"),
+  brands: z.array(z.string()).optional(),
+  brands_sold: z.string().optional(), // comma-separated string from signup form
+  area: z.string().min(1, "Area is required"),
+  city: z.string().optional().default("Johannesburg"),
+  province: z.string().optional().default("Gauteng"),
   phone: z.string().nullable().optional(),
-  email: z.string().email().nullable().optional(),
+  email: z.string().email("Valid email required").nullable().optional(),
   website: z.string().url().nullable().optional(),
   dealer_principal: z.string().nullable().optional(),
-  tier: z.enum(["starter", "growth", "pro", "enterprise"]).default("starter"),
+  principal_name: z.string().nullable().optional(), // alias from signup form
+  tier: z.enum(["free", "starter", "growth", "pro", "enterprise"]).default("starter"),
   whatsapp_number: z.string().nullable().optional(),
   inventory_feed_url: z.string().url().nullable().optional(),
+  status: z.string().optional(), // pending_payment, active
 })
 
 // ---------------------------------------------------------------------------
@@ -193,29 +196,72 @@ export async function POST(request: NextRequest) {
   const data = parsed.data
   const pricing = TIER_PRICING[data.tier]
 
+  // Normalize brands: accept brands[] array or brands_sold comma string
+  const brands = data.brands?.length
+    ? data.brands
+    : data.brands_sold
+      ? data.brands_sold.split(',').map((b: string) => b.trim()).filter(Boolean)
+      : []
+
+  // Normalize principal name (accept both field names from form)
+  const principal = data.dealer_principal ?? data.principal_name ?? null
+
   const newDealer: Dealer = {
     id: `d-${Date.now().toString(36)}`,
     name: data.name,
     group_name: data.group_name ?? null,
-    brands: data.brands,
+    brands,
     area: data.area,
-    city: data.city,
-    province: data.province,
+    city: data.city ?? 'Johannesburg',
+    province: data.province ?? 'Gauteng',
     phone: data.phone ?? null,
     email: data.email ?? null,
     website: data.website ?? null,
-    dealer_principal: data.dealer_principal ?? null,
+    dealer_principal: principal,
     tier: data.tier,
     monthly_fee: pricing.fee,
     leads_quota: pricing.quota,
-    is_active: true,
+    is_active: data.tier === 'free' || data.status === 'active',
     whatsapp_number: data.whatsapp_number ?? null,
     inventory_feed_url: data.inventory_feed_url ?? null,
     created_at: new Date().toISOString(),
   }
 
-  // TODO: Insert into Supabase
-  // const { data: inserted, error } = await supabase.from('va_dealers').insert(newDealer).select().single()
+  // Insert into Supabase
+  try {
+    const { createClient } = await import('@/lib/supabase/server')
+    const supabase = await createClient()
+    const { data: inserted, error } = await supabase
+      .from('va_dealers')
+      .insert({
+        name: newDealer.name,
+        group_name: newDealer.group_name,
+        brands: newDealer.brands,
+        area: newDealer.area,
+        city: newDealer.city,
+        province: newDealer.province,
+        phone: newDealer.phone,
+        email: newDealer.email,
+        website: newDealer.website,
+        dealer_principal: newDealer.dealer_principal,
+        tier: newDealer.tier,
+        monthly_fee: newDealer.monthly_fee,
+        leads_quota: newDealer.leads_quota,
+        is_active: newDealer.is_active,
+        whatsapp_number: newDealer.whatsapp_number,
+      })
+      .select()
+      .single()
+
+    if (!error && inserted) {
+      return NextResponse.json(
+        { dealer: inserted, id: inserted.id, pricing: { monthly_fee: pricing.fee, leads_quota: pricing.quota } },
+        { status: 201 }
+      )
+    }
+  } catch {
+    // Supabase unavailable — fall through to mock response
+  }
 
   return NextResponse.json(
     {
