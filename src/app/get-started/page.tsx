@@ -132,7 +132,7 @@ const areaOptions = [
 // ---------------------------------------------------------------------------
 // Page Component
 // ---------------------------------------------------------------------------
-export default function GetStartedPage() {
+function GetStartedContent() {
   const searchParams = useSearchParams();
   const preselectedTier = searchParams.get("tier") || "";
   const paymentStatus = searchParams.get("payment");
@@ -694,5 +694,13 @@ export default function GetStartedPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function GetStartedPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-400">Loading...</div>}>
+      <GetStartedContent />
+    </Suspense>
   );
 }
