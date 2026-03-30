@@ -155,14 +155,16 @@ export default function Hero() {
               <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
-          <Button
-            variant="outline"
-            size="lg"
-            className="h-14 gap-2.5 border-zinc-700 px-10 text-base text-zinc-300 hover:bg-zinc-800/80 hover:text-white hover:border-zinc-600"
-          >
-            <Play className="h-4 w-4" />
-            Watch Demo
-          </Button>
+          <Link href="/why-visio-auto">
+            <Button
+              variant="outline"
+              size="lg"
+              className="h-14 gap-2.5 border-zinc-700 px-10 text-base text-zinc-300 hover:bg-zinc-800/80 hover:text-white hover:border-zinc-600"
+            >
+              <Play className="h-4 w-4" />
+              Watch Demo
+            </Button>
+          </Link>
         </motion.div>
 
         {/* Stats bar */}

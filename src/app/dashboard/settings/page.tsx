@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Building2,
   MessageCircle,
@@ -82,12 +83,19 @@ export default function SettingsPage() {
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [smsAlerts, setSmsAlerts] = useState(false);
 
-  function handleSave(section: string) {
+  async function handleSave(section: string) {
     setSavingSection(section);
-    setTimeout(() => setSavingSection(null), 1200);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    } finally {
+      setSavingSection(null);
+    }
   }
 
-  function handleCopy() {
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText("va_live_xxxxxxxxxxxxxxxx");
+    } catch { /* clipboard not available */ }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -405,12 +413,14 @@ export default function SettingsPage() {
                 R4,999<span className="text-xs font-normal text-zinc-500">/month</span>
               </p>
             </div>
-            <Button
-              variant="outline"
-              className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
-            >
-              Upgrade
-            </Button>
+            <Link href="/get-started">
+              <Button
+                variant="outline"
+                className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+              >
+                Upgrade
+              </Button>
+            </Link>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             {[

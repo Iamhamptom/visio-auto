@@ -623,6 +623,13 @@ export default function LeadsPage() {
                   </TableCell>
                 </TableRow>
               )}
+              {!loading && filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={13} className="text-center py-12 text-zinc-500">
+                    No leads match your filters. Try adjusting your search criteria.
+                  </TableCell>
+                </TableRow>
+              )}
               {!loading && filtered.map((lead) => (
                 <TableRow
                   key={lead.id}
@@ -671,6 +678,7 @@ export default function LeadsPage() {
                         variant="ghost"
                         size="icon-xs"
                         className="text-zinc-500 hover:text-emerald-400"
+                        onClick={() => window.open(`https://wa.me/${lead.phone?.replace(/\s/g, '').replace(/^\+/, '')}`, '_blank')}
                       >
                         <MessageCircle className="h-3 w-3" />
                       </Button>

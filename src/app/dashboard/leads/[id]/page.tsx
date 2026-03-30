@@ -259,6 +259,8 @@ export default function LeadDetailPage({
   const [lead, setLead] = useState(leadsMap[id] || defaultLead);
   const [vehicles, setVehicles] = useState(matchedVehicles);
   const [loading, setLoading] = useState(true);
+  const [waMessage, setWaMessage] = useState("");
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch lead detail
@@ -315,6 +317,7 @@ export default function LeadDetailPage({
             variant="outline"
             size="sm"
             className="gap-2 border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+            onClick={() => window.open(`tel:${lead.phone}`)}
           >
             <Phone className="h-3.5 w-3.5" />
             Contact
@@ -323,6 +326,19 @@ export default function LeadDetailPage({
             variant="outline"
             size="sm"
             className="gap-2 border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+            disabled={actionLoading === "test_drive"}
+            onClick={async () => {
+              setActionLoading("test_drive");
+              try {
+                await fetch(`/api/leads/${lead.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ status: "test_drive_booked", test_drive_at: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() }),
+                });
+                setLead((prev) => ({ ...prev, status: "test_drive_booked" }));
+              } catch { /* keep current state */ }
+              setActionLoading(null);
+            }}
           >
             <Car className="h-3.5 w-3.5" />
             Book Test Drive
@@ -331,6 +347,23 @@ export default function LeadDetailPage({
             variant="outline"
             size="sm"
             className="gap-2 border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+            disabled={actionLoading === "assign"}
+            onClick={async () => {
+              setActionLoading("assign");
+              try {
+                const res = await fetch("/api/dealers");
+                const data = await res.json();
+                const dealer = data.dealers?.[0];
+                if (dealer) {
+                  await fetch(`/api/leads/${lead.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ assigned_dealer_id: dealer.id }),
+                  });
+                }
+              } catch { /* keep current state */ }
+              setActionLoading(null);
+            }}
           >
             <User className="h-3.5 w-3.5" />
             Assign to Dealer
@@ -338,6 +371,19 @@ export default function LeadDetailPage({
           <Button
             size="sm"
             className="gap-2 bg-emerald-600 text-white hover:bg-emerald-500"
+            disabled={actionLoading === "sold"}
+            onClick={async () => {
+              setActionLoading("sold");
+              try {
+                await fetch(`/api/leads/${lead.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ status: "sold", sold_at: new Date().toISOString() }),
+                });
+                setLead((prev) => ({ ...prev, status: "sold" }));
+              } catch { /* keep current state */ }
+              setActionLoading(null);
+            }}
           >
             <CheckCircle2 className="h-3.5 w-3.5" />
             Mark as Sold
@@ -469,11 +515,34 @@ export default function LeadDetailPage({
               <input
                 type="text"
                 placeholder="Type a message..."
+                value={waMessage}
+                onChange={(e) => setWaMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && waMessage.trim()) {
+                    fetch("/api/whatsapp/send", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ phone: lead.phone, message: waMessage }),
+                    }).catch(() => {});
+                    setWaMessage("");
+                  }
+                }}
                 className="flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-emerald-500/50"
               />
               <Button
                 size="sm"
                 className="bg-emerald-600 text-white hover:bg-emerald-500"
+                onClick={async () => {
+                  if (!waMessage.trim()) return;
+                  try {
+                    await fetch("/api/whatsapp/send", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ phone: lead.phone, message: waMessage }),
+                    });
+                  } catch { /* silently fail */ }
+                  setWaMessage("");
+                }}
               >
                 <Send className="h-3.5 w-3.5" />
               </Button>

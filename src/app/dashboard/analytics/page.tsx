@@ -267,6 +267,7 @@ export default function AnalyticsPage() {
             variant="outline"
             size="sm"
             className="border-zinc-800 bg-zinc-900/50 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            onClick={() => window.open('/api/leads/export?format=csv', '_blank')}
           >
             <Download className="mr-2 h-3.5 w-3.5" />
             Export

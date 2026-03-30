@@ -189,6 +189,12 @@ export default function InventoryPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [sortBy, setSortBy] = useState("days_on_lot");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [newVehicle, setNewVehicle] = useState({
+    brand: "", model: "", year: 2025, price: 0, mileage: 0,
+    condition: "new" as Condition, vehicle_type: "sedan" as VehicleType,
+    variant: "", color: "", vin: "",
+  });
+  const [addLoading, setAddLoading] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -269,31 +275,31 @@ export default function InventoryPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label className="text-zinc-300">Brand</Label>
-                  <Input placeholder="e.g. Toyota" className="border-zinc-800 bg-zinc-900 text-zinc-200" />
+                  <Input placeholder="e.g. Toyota" className="border-zinc-800 bg-zinc-900 text-zinc-200" value={newVehicle.brand} onChange={(e) => setNewVehicle((v) => ({ ...v, brand: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-zinc-300">Model</Label>
-                  <Input placeholder="e.g. Hilux 2.8 GD-6" className="border-zinc-800 bg-zinc-900 text-zinc-200" />
+                  <Input placeholder="e.g. Hilux 2.8 GD-6" className="border-zinc-800 bg-zinc-900 text-zinc-200" value={newVehicle.model} onChange={(e) => setNewVehicle((v) => ({ ...v, model: e.target.value }))} />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-2">
                   <Label className="text-zinc-300">Year</Label>
-                  <Input type="number" placeholder="2025" className="border-zinc-800 bg-zinc-900 text-zinc-200" />
+                  <Input type="number" placeholder="2025" className="border-zinc-800 bg-zinc-900 text-zinc-200" value={newVehicle.year} onChange={(e) => setNewVehicle((v) => ({ ...v, year: Number(e.target.value) }))} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-zinc-300">Price (R)</Label>
-                  <Input type="number" placeholder="499900" className="border-zinc-800 bg-zinc-900 text-zinc-200" />
+                  <Input type="number" placeholder="499900" className="border-zinc-800 bg-zinc-900 text-zinc-200" value={newVehicle.price || ""} onChange={(e) => setNewVehicle((v) => ({ ...v, price: Number(e.target.value) }))} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-zinc-300">Mileage</Label>
-                  <Input type="number" placeholder="0" className="border-zinc-800 bg-zinc-900 text-zinc-200" />
+                  <Input type="number" placeholder="0" className="border-zinc-800 bg-zinc-900 text-zinc-200" value={newVehicle.mileage || ""} onChange={(e) => setNewVehicle((v) => ({ ...v, mileage: Number(e.target.value) }))} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label className="text-zinc-300">Condition</Label>
-                  <Select>
+                  <Select value={newVehicle.condition} onValueChange={(val) => setNewVehicle((v) => ({ ...v, condition: val as Condition }))}>
                     <SelectTrigger className="border-zinc-800 bg-zinc-900 text-zinc-200">
                       <SelectValue placeholder="Select condition" />
                     </SelectTrigger>
@@ -307,7 +313,7 @@ export default function InventoryPage() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-zinc-300">Type</Label>
-                  <Select>
+                  <Select value={newVehicle.vehicle_type} onValueChange={(val) => setNewVehicle((v) => ({ ...v, vehicle_type: val as VehicleType }))}>
                     <SelectTrigger className="border-zinc-800 bg-zinc-900 text-zinc-200">
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
@@ -325,16 +331,16 @@ export default function InventoryPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label className="text-zinc-300">Variant</Label>
-                  <Input placeholder="e.g. M Sport" className="border-zinc-800 bg-zinc-900 text-zinc-200" />
+                  <Input placeholder="e.g. M Sport" className="border-zinc-800 bg-zinc-900 text-zinc-200" value={newVehicle.variant} onChange={(e) => setNewVehicle((v) => ({ ...v, variant: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-zinc-300">Color</Label>
-                  <Input placeholder="e.g. Alpine White" className="border-zinc-800 bg-zinc-900 text-zinc-200" />
+                  <Input placeholder="e.g. Alpine White" className="border-zinc-800 bg-zinc-900 text-zinc-200" value={newVehicle.color} onChange={(e) => setNewVehicle((v) => ({ ...v, color: e.target.value }))} />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-zinc-300">VIN (optional)</Label>
-                <Input placeholder="Vehicle Identification Number" className="border-zinc-800 bg-zinc-900 text-zinc-200" />
+                <Input placeholder="Vehicle Identification Number" className="border-zinc-800 bg-zinc-900 text-zinc-200" value={newVehicle.vin} onChange={(e) => setNewVehicle((v) => ({ ...v, vin: e.target.value }))} />
               </div>
             </div>
             <DialogFooter>
@@ -345,9 +351,27 @@ export default function InventoryPage() {
               </DialogClose>
               <Button
                 className="bg-emerald-600 text-white hover:bg-emerald-700"
-                onClick={() => setAddDialogOpen(false)}
+                disabled={addLoading || !newVehicle.brand || !newVehicle.model}
+                onClick={async () => {
+                  setAddLoading(true);
+                  try {
+                    const res = await fetch("/api/inventory", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(newVehicle),
+                    });
+                    const json = await res.json();
+                    const created = json.data ?? json.vehicle ?? json;
+                    if (created?.id) {
+                      setAllVehicles((prev) => [{ ...newVehicle, id: created.id, features: [], days_on_lot: 0, lead_match_count: 0 }, ...prev]);
+                    }
+                    setNewVehicle({ brand: "", model: "", year: 2025, price: 0, mileage: 0, condition: "new", vehicle_type: "sedan", variant: "", color: "", vin: "" });
+                    setAddDialogOpen(false);
+                  } catch { /* keep dialog open on error */ }
+                  setAddLoading(false);
+                }}
               >
-                Add Vehicle
+                {addLoading ? "Adding..." : "Add Vehicle"}
               </Button>
             </DialogFooter>
           </DialogContent>

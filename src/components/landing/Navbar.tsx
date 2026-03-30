@@ -7,7 +7,7 @@ import { Car, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
-  { label: "Why Visio Auto", href: "#why-visio-auto" },
+  { label: "Why Visio Auto", href: "/why-visio-auto" },
   { label: "How It Works", href: "#how-it-works" },
   { label: "Pricing", href: "#pricing" },
 ];

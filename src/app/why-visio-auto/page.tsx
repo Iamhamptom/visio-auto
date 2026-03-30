@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Menu, X } from "lucide-react";
 import {
   Zap,
   Brain,
@@ -317,6 +318,7 @@ function formatZAR(n: number) {
 // ---------------------------------------------------------------------------
 export default function WhyVisioAutoPage() {
   // ROI calculator state
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [leads, setLeads] = useState(100);
   const [avgPrice, setAvgPrice] = useState(350000);
   const [closeRate, setCloseRate] = useState(0.1);
@@ -384,7 +386,27 @@ export default function WhyVisioAutoPage() {
               </Button>
             </Link>
           </div>
+          <button
+            className="md:hidden text-zinc-400 hover:text-white"
+            onClick={() => setMobileNavOpen(!mobileNavOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileNavOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
+        {mobileNavOpen && (
+          <div className="md:hidden border-t border-zinc-800/50 bg-zinc-950/98 px-6 py-4 space-y-3">
+            <a href="#solution" className="block text-sm text-zinc-300 hover:text-white" onClick={() => setMobileNavOpen(false)}>Solution</a>
+            <a href="#dealers" className="block text-sm text-zinc-300 hover:text-white" onClick={() => setMobileNavOpen(false)}>For Dealers</a>
+            <a href="#pricing" className="block text-sm text-zinc-300 hover:text-white" onClick={() => setMobileNavOpen(false)}>Pricing</a>
+            <a href="#roi" className="block text-sm text-zinc-300 hover:text-white" onClick={() => setMobileNavOpen(false)}>ROI Calculator</a>
+            <Link href="/get-started" onClick={() => setMobileNavOpen(false)}>
+              <Button size="sm" className="w-full mt-2 bg-emerald-600 text-white hover:bg-emerald-500">
+                Start Free Trial
+              </Button>
+            </Link>
+          </div>
+        )}
       </nav>
 
       {/* ---------------------------------------------------------------- */}

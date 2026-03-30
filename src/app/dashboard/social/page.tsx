@@ -382,8 +382,33 @@ export default function SocialRadarPage() {
                         )}
 
                         {/* Convert button */}
-                        <Button size="sm" variant="outline" className="ml-auto border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
-                          Convert to Signal <ArrowRight className="ml-1.5 h-3 w-3" />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="ml-auto border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                          onClick={async () => {
+                            try {
+                              await fetch('/api/signals', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  signal_type: 'social_intent',
+                                  title: `Social: ${signal.content?.substring(0, 60)}`,
+                                  description: signal.content,
+                                  person_name: signal.person_name || signal.person_handle,
+                                  area: signal.area_detected,
+                                  data_source: signal.platform,
+                                  signal_strength: 'medium',
+                                  buying_probability: 55,
+                                  brand_mentioned: signal.brand_mentioned,
+                                }),
+                              })
+                              setAllSignals((prev) => prev.map((s) => s.id === signal.id ? { ...s, is_processed: true } : s))
+                            } catch { /* keep current state */ }
+                          }}
+                          disabled={signal.is_processed}
+                        >
+                          {signal.is_processed ? 'Converted' : 'Convert to Signal'} <ArrowRight className="ml-1.5 h-3 w-3" />
                         </Button>
                       </div>
                     </div>
