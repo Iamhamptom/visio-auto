@@ -39,6 +39,11 @@ const navItems = [
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
+const externalLinks = [
+  { label: "Why Visio Auto", href: "/why-visio-auto", icon: Zap },
+  { label: "Get Started", href: "/get-started", icon: Users },
+];
+
 export default function DashboardLayout({
   children,
 }: {
@@ -114,6 +119,26 @@ export default function DashboardLayout({
               );
             })}
           </ul>
+
+          {/* Client-facing links */}
+          <div className="mt-6 border-t border-zinc-800/50 pt-4">
+            <p className="mb-2 px-3 text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+              For Dealers
+            </p>
+            <ul className="space-y-1">
+              {externalLinks.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-800/50 hover:text-zinc-300"
+                  >
+                    <item.icon className="h-4 w-4 text-zinc-600" />
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </nav>
 
         {/* Bottom */}

@@ -158,6 +158,9 @@ export default function LandingPage() {
             <span className="text-lg font-semibold text-white">Visio Auto</span>
           </div>
           <div className="hidden items-center gap-8 md:flex">
+            <Link href="/why-visio-auto" className="text-sm text-zinc-400 hover:text-white transition-colors">
+              Why Visio Auto
+            </Link>
             <a href="#how-it-works" className="text-sm text-zinc-400 hover:text-white transition-colors">
               How It Works
             </a>
@@ -169,9 +172,9 @@ export default function LandingPage() {
                 Dashboard
               </Button>
             </Link>
-            <Link href="/get-quote">
+            <Link href="/get-started">
               <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-500">
-                Get Started
+                Start Free Trial
               </Button>
             </Link>
           </div>
