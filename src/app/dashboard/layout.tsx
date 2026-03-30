@@ -20,6 +20,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const navItems = [
+  { label: "AI Agent", href: "/dashboard/chat", icon: Bot, badge: false },
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Leads", href: "/dashboard/leads", icon: Users },
   { label: "Signals", href: "/dashboard/signals", icon: Zap, badge: true },
