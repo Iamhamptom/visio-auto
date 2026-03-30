@@ -9,22 +9,23 @@ import {
   useScroll,
   useTransform,
 } from "framer-motion";
-import { Zap, ArrowRight, Car, Globe, Clock, Play } from "lucide-react";
+import { Gauge, ArrowRight, CarFront, Globe, Zap, Settings, ShieldAlert, Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
 
 const swapWords = [
-  "car buyers",
-  "buying signals",
-  "qualified leads",
-  "test drive bookings",
+  "Predict the Next Buyer.",
+  "Shift the Metal.",
+  "Dominate the Market.",
+  "Beat the Competition."
 ];
 
 const stats = [
-  { label: "Dealerships", value: "329+", icon: Car },
-  { label: "Signal Types", value: "23", icon: Zap },
-  { label: "Languages", value: "6", icon: Globe },
-  { label: "Response Time", value: "30s", icon: Clock },
+  { label: "Dealerships Wired In", value: "329+", icon: CarFront },
+  { label: "Predictive Signals", value: "23", icon: Crosshair },
+  { label: "Regional Dialects", value: "6", icon: Globe },
+  { label: "Lead Delivery Time", value: "< 30s", icon: Zap },
 ];
 
 const fadeUp = {
@@ -64,27 +65,33 @@ export default function Hero() {
 
   return (
     <section
-      className="relative min-h-screen overflow-hidden pt-32 pb-20"
+      className="relative min-h-screen overflow-hidden pt-32 pb-20 bg-black"
       onMouseMove={handleMouseMove}
     >
-      {/* Grid background */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
+      {/* Hyper-realistic Background Image */}
+      <div className="absolute inset-0 z-0">
+        <Image 
+          src="/hero-car-green.png" 
+          alt="Luxury Green Hypercar emerging from shadows" 
+          fill
+          priority
+          className="object-cover object-center opacity-60 mix-blend-lighten pointer-events-none"
+        />
+        {/* Vignette & Bottom Fade */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,black_100%)] opacity-80" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-black" />
+      </div>
 
-      {/* Mouse-following gradient glow */}
+      {/* Mouse-following telemetry scanner line */}
       <motion.div
-        className="pointer-events-none absolute h-[600px] w-[600px] rounded-full bg-emerald-500/8 blur-[150px]"
+        className="pointer-events-none absolute h-[2px] w-[800px] bg-emerald-500/40 blur-[2px] z-10"
         style={{
-          x: springX,
           y: springY,
           left: "50%",
-          top: "30%",
           translateX: "-50%",
-          translateY: "-50%",
         }}
       />
-
-      {/* Static ambient glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-emerald-500/5 blur-[120px]" />
 
       <motion.div
         style={{ y: parallaxY }}
@@ -97,9 +104,9 @@ export default function Hero() {
           initial="hidden"
           animate="visible"
         >
-          <Badge className="mb-8 border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/15 px-4 py-1.5 text-sm">
-            <Zap className="mr-1.5 h-3.5 w-3.5" />
-            South Africa&#39;s First AI-Powered Dealership Intelligence Platform
+          <Badge className="mb-8 border-emerald-500/30 bg-black/60 backdrop-blur-md text-emerald-500 hover:bg-emerald-500/10 px-4 py-1.5 text-sm uppercase tracking-[0.2em] font-mono rounded-none border-l-2">
+            <Gauge className="mr-2 h-4 w-4" />
+            AUTOMOTIVE INTELLIGENCE TERMINAL
           </Badge>
         </motion.div>
 
@@ -109,20 +116,20 @@ export default function Hero() {
           variants={fadeUp}
           initial="hidden"
           animate="visible"
-          className="mx-auto max-w-5xl text-5xl font-bold leading-[1.05] tracking-tight text-white sm:text-6xl md:text-7xl lg:text-8xl"
+          className="mx-auto max-w-5xl text-5xl font-black uppercase leading-[1.0] tracking-tighter text-white sm:text-6xl md:text-7xl lg:text-8xl"
+          style={{ textShadow: "0 10px 40px rgba(0,0,0,0.8)" }}
         >
-          We find{" "}
-          <span className="relative inline-block">
+          <span className="relative inline-block min-h-[1.2em]">
             <span className="sr-only">{swapWords[wordIndex]}</span>
             <span
               key={wordIndex}
-              className="bg-gradient-to-r from-emerald-400 via-emerald-300 to-emerald-500 bg-clip-text text-transparent inline-block animate-[fadeSwap_0.5s_ease-in-out]"
+              className="bg-gradient-to-b from-white to-zinc-500 bg-clip-text text-transparent inline-block animate-[fadeSwap_0.4s_cubic-bezier(0.87,0,0.13,1)]"
             >
               {swapWords[wordIndex]}
             </span>
           </span>
           <br />
-          before anyone else
+          <span className="text-zinc-600">Before They Enter The Showroom.</span>
         </motion.h1>
 
         {/* Subtitle */}
@@ -131,11 +138,9 @@ export default function Hero() {
           variants={fadeUp}
           initial="hidden"
           animate="visible"
-          className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-zinc-400 md:text-xl"
+          className="mx-auto mt-8 max-w-2xl text-lg font-medium leading-relaxed text-zinc-300 md:text-xl font-mono uppercase tracking-wider bg-black/40 backdrop-blur-sm p-4 border border-white/5"
         >
-          We find car buyers before they walk into any dealership. AI-qualified,
-          scored, and delivered to your WhatsApp in{" "}
-          <span className="text-white font-semibold">30 seconds</span>.
+          We intercept highly qualified car buyers moments before they make a decision. Scored, verified, and pushed directly to your sales floor in <span className="text-emerald-500 font-bold">30 seconds</span>.
         </motion.p>
 
         {/* CTAs */}
@@ -144,14 +149,14 @@ export default function Hero() {
           variants={fadeUp}
           initial="hidden"
           animate="visible"
-          className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
+          className="mt-12 flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
         >
           <Link href="/get-started">
             <Button
               size="lg"
-              className="h-14 gap-2.5 bg-emerald-600 px-10 text-base font-semibold text-white hover:bg-emerald-500 shadow-xl shadow-emerald-500/20 transition-all hover:shadow-emerald-500/30 hover:scale-[1.02]"
+              className="h-14 gap-2.5 bg-emerald-600 px-10 rounded-none text-base font-bold uppercase tracking-widest text-white hover:bg-emerald-500 shadow-[0_0_30px_-5px_rgba(16,185,129,0.5)] transition-all hover:scale-[1.03]"
             >
-              Start Free Trial
+              Engage Terminal
               <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
@@ -159,10 +164,10 @@ export default function Hero() {
             <Button
               variant="outline"
               size="lg"
-              className="h-14 gap-2.5 border-zinc-700 px-10 text-base text-zinc-300 hover:bg-zinc-800/80 hover:text-white hover:border-zinc-600"
+              className="h-14 gap-2.5 border-zinc-700 bg-black/50 backdrop-blur-md rounded-none px-10 text-base font-bold uppercase tracking-widest text-zinc-300 hover:bg-white hover:text-black hover:border-white transition-all"
             >
-              <Play className="h-4 w-4" />
-              Watch Demo
+              <Settings className="h-4 w-4" />
+              View Specifications
             </Button>
           </Link>
         </motion.div>
@@ -173,20 +178,20 @@ export default function Hero() {
           variants={fadeUp}
           initial="hidden"
           animate="visible"
-          className="mx-auto mt-20 grid max-w-3xl grid-cols-2 gap-4 md:grid-cols-4"
+          className="mx-auto mt-24 grid max-w-4xl grid-cols-2 gap-4 md:grid-cols-4 relative z-20"
         >
           {stats.map((stat, i) => (
             <motion.div
               key={stat.label}
-              whileHover={{ scale: 1.05, y: -4 }}
+              whileHover={{ scale: 1.02, y: -2 }}
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              className="flex flex-col items-center gap-1.5 rounded-xl border border-zinc-800/50 bg-zinc-900/50 px-4 py-6 backdrop-blur-sm hover:border-emerald-500/20 transition-colors"
+              className="flex flex-col items-start gap-2 border-l-2 border-emerald-500/30 bg-black/60 px-5 py-6 backdrop-blur-xl hover:border-emerald-500 transition-colors shadow-2xl"
             >
-              <stat.icon className="mb-1 h-5 w-5 text-emerald-400" />
-              <span className="font-mono text-2xl font-bold text-white">
+              <stat.icon className="mb-2 h-6 w-6 text-emerald-500" />
+              <span className="font-mono text-3xl font-black text-white tracking-tighter">
                 {stat.value}
               </span>
-              <span className="text-xs text-zinc-500">{stat.label}</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">{stat.label}</span>
             </motion.div>
           ))}
         </motion.div>
