@@ -14,12 +14,13 @@ import {
   Baby,
   GraduationCap,
   ArrowUpRight,
-  ArrowDownRight,
-  MessageCircle,
-  Eye,
-  Loader2,
+  FileText,
+  Send,
+  Terminal,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -28,14 +29,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   ChartContainer,
   ChartTooltip,
@@ -53,69 +46,79 @@ import {
   CartesianGrid,
 } from "recharts";
 import type { Lead, Signal } from "@/lib/types";
+import { KPICard } from "@/components/dashboard/KPICard";
+import { SignalFeed } from "@/components/dashboard/SignalFeed";
+import { LeadTable } from "@/components/dashboard/LeadTable";
+import { ChartCard } from "@/components/dashboard/ChartCard";
 
 // --- Mock Data ---
 
-const kpis = [
+const kpiConfig = [
   {
     title: "Total Leads",
-    value: "247",
-    change: "+18%",
-    trend: "up" as const,
+    value: 247,
+    change: 18,
+    changeDirection: "up" as const,
     subtitle: "This month",
     icon: Users,
     color: "text-blue-400",
     bg: "bg-blue-400/10",
+    format: "number" as const,
   },
   {
     title: "Hot Leads",
-    value: "38",
-    change: "+24%",
-    trend: "up" as const,
+    value: 38,
+    change: 24,
+    changeDirection: "up" as const,
     subtitle: "Score 80+",
     icon: Flame,
     color: "text-red-400",
     bg: "bg-red-400/10",
+    format: "number" as const,
   },
   {
     title: "Test Drives",
-    value: "52",
-    change: "+12%",
-    trend: "up" as const,
+    value: 52,
+    change: 12,
+    changeDirection: "up" as const,
     subtitle: "Booked this month",
     icon: Car,
     color: "text-emerald-400",
     bg: "bg-emerald-400/10",
+    format: "number" as const,
   },
   {
     title: "Sales Closed",
-    value: "19",
-    change: "+8%",
-    trend: "up" as const,
+    value: 19,
+    change: 8,
+    changeDirection: "up" as const,
     subtitle: "R4.2M revenue",
     icon: DollarSign,
     color: "text-amber-400",
     bg: "bg-amber-400/10",
+    format: "number" as const,
   },
   {
     title: "Avg Response",
     value: "28s",
-    change: "-15%",
-    trend: "up" as const,
+    change: 15,
+    changeDirection: "up" as const,
     subtitle: "WhatsApp delivery",
     icon: Clock,
     color: "text-purple-400",
     bg: "bg-purple-400/10",
+    format: "time" as const,
   },
   {
     title: "ROI",
     value: "4.2x",
-    change: "+0.3x",
-    trend: "up" as const,
+    change: 7,
+    changeDirection: "up" as const,
     subtitle: "vs R15K spend",
     icon: TrendingUp,
     color: "text-emerald-400",
     bg: "bg-emerald-400/10",
+    format: "number" as const,
   },
 ];
 
@@ -265,14 +268,6 @@ const recentSignals: Partial<Signal>[] = [
   },
 ];
 
-const signalIcon: Record<string, typeof Zap> = {
-  promotion: Briefcase,
-  new_baby: Baby,
-  new_business: Zap,
-  relocation: Home,
-  graduation: GraduationCap,
-};
-
 const sourceData = [
   { name: "Social Signals", value: 82, fill: "#10b981" },
   { name: "CIPC Registry", value: 54, fill: "#3b82f6" },
@@ -303,56 +298,25 @@ const trendChartConfig: ChartConfig = {
   hot: { label: "Hot Leads", color: "#ef4444" },
 };
 
-function scoreBadge(tier: string, score: number) {
-  const styles: Record<string, string> = {
-    hot: "bg-red-500/10 text-red-400 ring-red-500/20",
-    warm: "bg-amber-500/10 text-amber-400 ring-amber-500/20",
-    cold: "bg-blue-500/10 text-blue-400 ring-blue-500/20",
-  };
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${styles[tier] || styles.cold}`}
-    >
-      {score}
-      <span className="text-[10px] uppercase">{tier}</span>
-    </span>
-  );
-}
+function useElapsedTime() {
+  const [elapsed, setElapsed] = useState(0);
+  const [startTime] = useState(() => Date.now());
 
-function statusBadge(status: string) {
-  const styles: Record<string, string> = {
-    new: "bg-zinc-500/10 text-zinc-400",
-    contacted: "bg-blue-500/10 text-blue-400",
-    qualified: "bg-emerald-500/10 text-emerald-400",
-    test_drive_booked: "bg-purple-500/10 text-purple-400",
-    negotiating: "bg-amber-500/10 text-amber-400",
-    sold: "bg-emerald-500/10 text-emerald-300",
-  };
-  const labels: Record<string, string> = {
-    new: "New",
-    contacted: "Contacted",
-    qualified: "Qualified",
-    test_drive_booked: "Test Drive",
-    negotiating: "Negotiating",
-    sold: "Sold",
-  };
-  return (
-    <span
-      className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${styles[status] || styles.new}`}
-    >
-      {labels[status] || status}
-    </span>
-  );
-}
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
 
-function formatRand(amount: number) {
-  return `R${(amount / 1000).toFixed(0)}K`;
+  return elapsed;
 }
 
 export default function DashboardOverview() {
   const [leads, setLeads] = useState<Partial<Lead>[]>(recentLeads);
   const [signals, setSignals] = useState<Partial<Signal>[]>(recentSignals);
   const [loading, setLoading] = useState(true);
+  const elapsed = useElapsedTime();
 
   useEffect(() => {
     Promise.allSettled([
@@ -372,62 +336,107 @@ export default function DashboardOverview() {
   }, []);
 
   // Compute KPIs from live leads data
-  const computedKpis = leads.length > 0
-    ? kpis.map((kpi) => {
-        if (kpi.title === "Total Leads") return { ...kpi, value: String(leads.length) };
-        if (kpi.title === "Hot Leads")
-          return { ...kpi, value: String(leads.filter((l) => l.score_tier === "hot").length) };
-        return kpi;
-      })
-    : kpis;
+  const computedKpis =
+    leads.length > 0
+      ? kpiConfig.map((kpi) => {
+          if (kpi.title === "Total Leads") return { ...kpi, value: leads.length };
+          if (kpi.title === "Hot Leads")
+            return {
+              ...kpi,
+              value: leads.filter((l) => l.score_tier === "hot").length,
+            };
+          return kpi;
+        })
+      : kpiConfig;
 
   return (
     <div className="space-y-6">
+      {/* Header with quick actions */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div>
+          <h1 className="text-lg font-bold text-white">Dashboard Overview</h1>
+          <p className="mt-0.5 flex items-center gap-2 text-xs text-zinc-500">
+            <span>Last updated: {elapsed}s ago</span>
+            <motion.span
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="inline-block"
+            >
+              <RefreshCw className="h-3 w-3 text-zinc-600" />
+            </motion.span>
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard/pitch">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-zinc-800 bg-zinc-900/50 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            >
+              <FileText className="mr-1.5 h-3.5 w-3.5" />
+              Generate Brief
+            </Button>
+          </Link>
+          <Link href="/dashboard/outreach">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-zinc-800 bg-zinc-900/50 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            >
+              <Send className="mr-1.5 h-3.5 w-3.5" />
+              Send Blast
+            </Button>
+          </Link>
+          <Link href="/dashboard/terminal">
+            <Button
+              size="sm"
+              className="bg-emerald-600 text-white hover:bg-emerald-500"
+            >
+              <Terminal className="mr-1.5 h-3.5 w-3.5" />
+              View Terminal
+            </Button>
+          </Link>
+        </div>
+      </motion.div>
+
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {computedKpis.map((kpi) => (
-          <Card
+        {computedKpis.map((kpi, index) => (
+          <KPICard
             key={kpi.title}
-            className="border-zinc-800/50 bg-zinc-900/50"
-          >
-            <CardContent className="pt-0">
-              <div className="flex items-center justify-between">
-                <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg ${kpi.bg}`}
-                >
-                  <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
-                </div>
-                <div
-                  className={`flex items-center gap-0.5 text-xs font-medium ${
-                    kpi.trend === "up" ? "text-emerald-400" : "text-red-400"
-                  }`}
-                >
-                  {kpi.trend === "up" ? (
-                    <ArrowUpRight className="h-3 w-3" />
-                  ) : (
-                    <ArrowDownRight className="h-3 w-3" />
-                  )}
-                  {kpi.change}
-                </div>
-              </div>
-              <div className="mt-3">
-                <p className="font-mono text-2xl font-bold text-white">
-                  {kpi.value}
-                </p>
-                <p className="mt-0.5 text-xs text-zinc-500">{kpi.subtitle}</p>
-              </div>
-            </CardContent>
-          </Card>
+            title={kpi.title}
+            value={kpi.value}
+            change={kpi.change}
+            changeDirection={kpi.changeDirection}
+            icon={kpi.icon}
+            format={kpi.format}
+            delay={index * 0.08}
+            subtitle={kpi.subtitle}
+            color={kpi.color}
+            bg={kpi.bg}
+          />
         ))}
       </div>
 
       {/* Main Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Recent Leads Table */}
-        <div className="lg:col-span-2">
-          <Card className="border-zinc-800/50 bg-zinc-900/50">
-            <CardHeader className="flex-row items-center justify-between">
-              <CardTitle className="text-white">Recent Leads</CardTitle>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+          className="lg:col-span-2"
+        >
+          <Card className="overflow-hidden border-zinc-800/50 bg-zinc-900/50">
+            <CardHeader className="flex-row items-center justify-between border-b border-zinc-800/30 px-5 py-4">
+              <CardTitle className="text-sm font-semibold text-white">
+                Recent Leads
+              </CardTitle>
               <Link href="/dashboard/leads">
                 <Button
                   variant="ghost"
@@ -439,232 +448,131 @@ export default function DashboardOverview() {
                 </Button>
               </Link>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-zinc-800/50 hover:bg-transparent">
-                    <TableHead className="text-zinc-500">Name</TableHead>
-                    <TableHead className="text-zinc-500">Score</TableHead>
-                    <TableHead className="text-zinc-500">Budget</TableHead>
-                    <TableHead className="text-zinc-500">Brand</TableHead>
-                    <TableHead className="text-zinc-500">Timeline</TableHead>
-                    <TableHead className="text-zinc-500">Status</TableHead>
-                    <TableHead className="text-zinc-500">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
-                        <Loader2 className="h-5 w-5 animate-spin text-zinc-500 mx-auto" />
-                      </TableCell>
-                    </TableRow>
-                  ) : null}
-                  {!loading && leads.map((lead) => (
-                    <TableRow
-                      key={lead.id}
-                      className="border-zinc-800/30 hover:bg-zinc-800/30 cursor-pointer"
-                    >
-                      <TableCell className="font-medium text-zinc-200">
-                        <Link
-                          href={`/dashboard/leads/${lead.id}`}
-                          className="hover:text-emerald-400 transition-colors"
-                        >
-                          {lead.name}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        {scoreBadge(
-                          lead.score_tier || "cold",
-                          lead.ai_score || 0
-                        )}
-                      </TableCell>
-                      <TableCell className="font-mono text-zinc-300">
-                        {formatRand(lead.budget_max || 0)}
-                      </TableCell>
-                      <TableCell className="text-zinc-400">
-                        {lead.preferred_brand}
-                      </TableCell>
-                      <TableCell className="text-zinc-400 capitalize">
-                        {(lead.timeline || "").replace(/_/g, " ")}
-                      </TableCell>
-                      <TableCell>{statusBadge(lead.status || "new")}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            className="text-zinc-500 hover:text-emerald-400"
-                          >
-                            <MessageCircle className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            className="text-zinc-500 hover:text-emerald-400"
-                          >
-                            <Eye className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <CardContent className="p-0">
+              <LeadTable leads={leads} loading={loading} />
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
 
-        {/* Live Signals Feed — uses signals state */}
-        <div>
+        {/* Live Signals Feed */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+        >
           <Card className="border-zinc-800/50 bg-zinc-900/50">
-            <CardHeader className="flex-row items-center justify-between">
+            <CardHeader className="flex-row items-center justify-between border-b border-zinc-800/30 px-5 py-4">
               <div className="flex items-center gap-2">
-                <CardTitle className="text-white">Live Signals</CardTitle>
-                <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <CardTitle className="text-sm font-semibold text-white">
+                  Live Signals
+                </CardTitle>
+                <motion.div
+                  animate={{
+                    boxShadow: [
+                      "0 0 0 0 rgba(16, 185, 129, 0.4)",
+                      "0 0 0 6px rgba(16, 185, 129, 0)",
+                    ],
+                  }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="h-2 w-2 rounded-full bg-emerald-400"
+                />
               </div>
               <Badge className="bg-emerald-500/10 text-emerald-400 ring-emerald-500/20 hover:bg-emerald-500/10">
                 {signals.length} new
               </Badge>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {signals.map((signal) => {
-                  const Icon =
-                    signalIcon[signal.signal_type || ""] || Zap;
-                  return (
-                    <div
-                      key={signal.id}
-                      className="flex gap-3 rounded-lg border border-zinc-800/30 bg-zinc-900/30 p-3"
-                    >
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-400/10">
-                        <Icon className="h-4 w-4 text-emerald-400" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm text-zinc-300 leading-snug">
-                          {signal.title}
-                        </p>
-                        <div className="mt-1.5 flex items-center gap-2">
-                          <span className="font-mono text-xs text-emerald-400">
-                            {Math.round(
-                              (signal.buying_probability || 0) * 100
-                            )}
-                            %
-                          </span>
-                          <span className="text-[10px] text-zinc-600">
-                            buy probability
-                          </span>
-                          <span className="ml-auto text-[10px] text-zinc-600">
-                            {signal.created_at}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+            <CardContent className="p-4">
+              <SignalFeed signals={signals} loading={loading} />
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
       </div>
 
       {/* Charts Row */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Leads by Source */}
-        <Card className="border-zinc-800/50 bg-zinc-900/50">
-          <CardHeader>
-            <CardTitle className="text-white">Leads by Source</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer
-              config={sourceChartConfig}
-              className="mx-auto aspect-square max-h-[280px]"
-            >
-              <PieChart>
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Pie
-                  data={sourceData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={3}
-                  dataKey="value"
-                  nameKey="name"
-                  strokeWidth={0}
-                >
-                  {sourceData.map((entry) => (
-                    <Cell key={entry.name} fill={entry.fill} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ChartContainer>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              {sourceData.map((s) => (
-                <div key={s.name} className="flex items-center gap-2 text-xs">
-                  <div
-                    className="h-2.5 w-2.5 rounded-sm"
-                    style={{ backgroundColor: s.fill }}
-                  />
-                  <span className="text-zinc-400">{s.name}</span>
-                  <span className="ml-auto font-mono text-zinc-300">
-                    {s.value}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <ChartCard title="Leads by Source" subtitle="Distribution by acquisition channel" delay={0.1}>
+          <ChartContainer
+            config={sourceChartConfig}
+            className="mx-auto aspect-square max-h-[280px]"
+          >
+            <PieChart>
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Pie
+                data={sourceData}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={100}
+                paddingAngle={3}
+                dataKey="value"
+                nameKey="name"
+                strokeWidth={0}
+              >
+                {sourceData.map((entry) => (
+                  <Cell key={entry.name} fill={entry.fill} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ChartContainer>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {sourceData.map((s) => (
+              <div key={s.name} className="flex items-center gap-2 text-xs">
+                <div
+                  className="h-2.5 w-2.5 rounded-sm"
+                  style={{ backgroundColor: s.fill }}
+                />
+                <span className="text-zinc-400">{s.name}</span>
+                <span className="ml-auto font-mono text-zinc-300">
+                  {s.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </ChartCard>
 
         {/* Leads Trend */}
-        <Card className="border-zinc-800/50 bg-zinc-900/50">
-          <CardHeader>
-            <CardTitle className="text-white">
-              Leads Trend (Last 30 Days)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer
-              config={trendChartConfig}
-              className="aspect-[2/1] w-full"
-            >
-              <LineChart data={trendData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.05)"
-                />
-                <XAxis
-                  dataKey="day"
-                  tick={{ fontSize: 10 }}
-                  tickLine={false}
-                  axisLine={false}
-                  interval={6}
-                />
-                <YAxis
-                  tick={{ fontSize: 10 }}
-                  tickLine={false}
-                  axisLine={false}
-                  width={30}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line
-                  type="monotone"
-                  dataKey="leads"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  dot={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="hot"
-                  stroke="#ef4444"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+        <ChartCard title="Leads Trend" subtitle="Daily acquisition over time" delay={0.2}>
+          <ChartContainer
+            config={trendChartConfig}
+            className="aspect-[2/1] w-full"
+          >
+            <LineChart data={trendData}>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="rgba(255,255,255,0.05)"
+              />
+              <XAxis
+                dataKey="day"
+                tick={{ fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
+                interval={6}
+              />
+              <YAxis
+                tick={{ fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
+                width={30}
+              />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Line
+                type="monotone"
+                dataKey="leads"
+                stroke="#10b981"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="hot"
+                stroke="#ef4444"
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
+          </ChartContainer>
+        </ChartCard>
       </div>
     </div>
   );
