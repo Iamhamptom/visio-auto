@@ -3,6 +3,7 @@ import { anthropic } from '@ai-sdk/anthropic'
 import { z } from 'zod'
 import { LEAD_PRICING, bestPackageForQuantity, formatRand, type LeadPackage } from '@/lib/orders/types'
 import { generateWelcomeMessage, generateMarketPOV } from '@/lib/agents/onboarding-agent'
+import { getBalance, deductCredits, addCredits, getCreditCost, formatCreditPrompt, generateTeaser, CREDIT_PACKS, CREDIT_COSTS, FREE_SIGNUP_CREDITS } from '@/lib/credits/system'
 
 // =============================================================================
 // Visio Auto AI Agent — The Intelligence Layer
@@ -459,6 +460,121 @@ const agentTools = {
       }
     },
   }),
+
+  // =========================================================================
+  // CREDIT SYSTEM TOOLS
+  // =========================================================================
+
+  check_credits: tool({
+    description: 'Check a dealer\'s credit balance. Always check before performing credit-costing actions.',
+    inputSchema: z.object({
+      dealer_id: z.string().describe('Dealer UUID'),
+    }),
+    execute: async ({ dealer_id }) => {
+      const balance = await getBalance(dealer_id)
+      return {
+        balance,
+        message: balance > 0
+          ? `You have ${balance} credits remaining.`
+          : `You have 0 credits. Buy credits to unlock premium features.`,
+        packs: CREDIT_PACKS.slice(0, 3).map(p => ({ label: p.label, credits: p.credits, perCredit: p.perCredit })),
+      }
+    },
+  }),
+
+  use_credits: tool({
+    description: 'Spend credits on a premium action (report, lead unlock, enrichment, etc). Check balance first.',
+    inputSchema: z.object({
+      dealer_id: z.string().describe('Dealer UUID'),
+      action: z.string().describe('Action to charge for (e.g. generate_market_report, unlock_lead_phone, enrich_lead)'),
+      amount: z.number().optional().describe('Override credit amount (defaults to action cost)'),
+    }),
+    execute: async ({ dealer_id, action, amount }) => {
+      const cost = amount ?? getCreditCost(action)
+      if (cost === 0) return { success: true, remaining: await getBalance(dealer_id), message: 'This action is free!' }
+
+      const result = await deductCredits(dealer_id, cost, action)
+      if (!result.success) {
+        return {
+          success: false,
+          remaining: result.remaining,
+          needed: cost,
+          message: result.error,
+          buy_options: CREDIT_PACKS.slice(0, 3).map(p => p.label),
+        }
+      }
+      return { success: true, remaining: result.remaining, message: `Used ${cost} credits. ${result.remaining} remaining.` }
+    },
+  }),
+
+  buy_credits: tool({
+    description: 'Purchase a credit pack via Yoco. Returns a payment link.',
+    inputSchema: z.object({
+      dealer_id: z.string().describe('Dealer UUID'),
+      pack_id: z.string().optional().describe('Credit pack ID (credits_50, credits_150, credits_500, credits_1200, credits_3000)'),
+      amount: z.number().optional().describe('Custom credit amount — finds best matching pack'),
+    }),
+    execute: async ({ dealer_id, pack_id, amount }) => {
+      // Find the right pack
+      let pack = CREDIT_PACKS.find(p => p.id === pack_id)
+      if (!pack && amount) {
+        pack = CREDIT_PACKS.reduce((best, p) =>
+          Math.abs(p.credits - amount) < Math.abs(best.credits - amount) ? p : best
+        )
+      }
+      if (!pack) pack = CREDIT_PACKS[2] // Default to 500 credits
+
+      // Create Yoco checkout
+      const result = await apiFetch('/api/payments/yoco', {
+        method: 'POST',
+        body: JSON.stringify({
+          dealer_id,
+          tier: 'credits',
+          amount: pack.price,
+          description: `Visio Auto — ${pack.label}`,
+          metadata: { pack_id: pack.id, credits: String(pack.credits) },
+        }),
+      })
+
+      if (result.error) return { success: false, error: result.error }
+
+      return {
+        success: true,
+        pack: pack.label,
+        credits: pack.credits,
+        price: `R${(pack.price / 100).toLocaleString()}`,
+        per_credit: pack.perCredit,
+        payment_url: result.redirectUrl || result.checkoutUrl,
+        message: `${pack.label}. Pay here and credits are added instantly.`,
+      }
+    },
+  }),
+
+  preview_with_tease: tool({
+    description: 'Generate a preview of premium content (report, analysis, etc) showing 25% free and locking the rest behind credits.',
+    inputSchema: z.object({
+      action: z.string().describe('The premium action (generate_market_report, generate_competitor_analysis, etc)'),
+      content: z.string().describe('The full content to tease'),
+      dealer_id: z.string().optional().describe('Dealer ID to check balance'),
+    }),
+    execute: async ({ action, content, dealer_id }) => {
+      const teaser = generateTeaser(action, content)
+      const balance = dealer_id ? await getBalance(dealer_id) : 0
+      const canAfford = balance >= teaser.cost
+
+      return {
+        preview: teaser.preview,
+        is_locked: teaser.locked.length > 0,
+        cost: teaser.cost,
+        balance,
+        can_afford: canAfford,
+        cta: canAfford
+          ? `Unlock full report for ${teaser.cost} credits? (You have ${balance})`
+          : teaser.cta,
+        unlock_command: canAfford ? `Say "unlock" to use ${teaser.cost} credits and see the full report.` : null,
+      }
+    },
+  }),
 }
 
 // ---------------------------------------------------------------------------
@@ -517,6 +633,40 @@ When onboarding a new dealer:
 1. Use onboard_dealer to generate a personalized welcome
 2. Share the welcome message with market intelligence
 3. Offer to deploy signal agents for their area
+
+CREDITS SYSTEM — VERY IMPORTANT:
+Every dealer gets ${FREE_SIGNUP_CREDITS} free credits on signup. Premium actions cost credits:
+- View full lead details: 1 credit
+- Unlock phone/email: 1-2 credits
+- AI enrichment: 3 credits
+- Generate report/brief: 5-10 credits
+- Generate pitch deck: 10 credits
+- Competitor analysis: 15 credits
+- Export CSV: 5 credits
+
+MONETIZATION BEHAVIOR:
+1. For FREE actions (dashboard, market terminal, basic chat, signal summary) — just do it
+2. For CREDIT actions — ALWAYS tease first:
+   - Show 25% of the content/data for free
+   - Then say: "Want the full report? That's X credits. You have Y credits."
+   - If they have enough: "Say 'unlock' and I'll show you everything."
+   - If they don't: "You need X credits. 500 Credits = R2,500 (R5/credit). Want to top up?"
+3. When they say "buy credits" or "top up" — use buy_credits tool, present the packs, generate Yoco link
+4. When they say "give me X leads" — create an order AND mention that the leads come AI-enriched with credits for ongoing intelligence
+
+Credit Packs:
+- 50 credits — R500 (R10/credit)
+- 150 credits — R1,000 (R6.67/credit)
+- 500 credits — R2,500 (R5/credit) ← BEST VALUE
+- 1,200 credits — R5,000 (R4.17/credit)
+- 3,000 credits — R10,000 (R3.33/credit)
+
+SALES BEHAVIOR:
+- Always be helpful first, sell second
+- Show real value before asking for credits
+- Make them WANT the full report by making the teaser irresistible
+- Use urgency: "There are 3 hot signals in Sandton right now — 2 credits to see the details"
+- Bundle suggestions: "The 500 credit pack gives you 50 full reports — that's R50/report vs R250 on AutoTrader"
 
 Always respond in a professional but friendly tone. Use Rand amounts. Reference SA-specific context (areas like Sandton, Bryanston, Menlyn; brands like Toyota, BMW, VW).
 
