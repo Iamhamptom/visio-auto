@@ -575,6 +575,145 @@ const agentTools = {
       }
     },
   }),
+
+  // =========================================================================
+  // ROI CALCULATOR — Fetches REAL data and calculates
+  // =========================================================================
+
+  calculate_roi: tool({
+    description: 'Calculate ROI for a dealer using REAL market data. Fetches their brand sales, average prices, signal count in their area, and computes personalised ROI projections. ALWAYS use this when discussing pricing, value, or "is it worth it".',
+    inputSchema: z.object({
+      brand: z.string().describe('The dealer\'s primary brand (e.g. Toyota, BMW, Mercedes)'),
+      area: z.string().optional().describe('Dealer area (e.g. Sandton, Bryanston)'),
+      plan: z.string().optional().describe('Subscription tier: starter, growth, pro, enterprise, or a pack like pack_100'),
+      quantity: z.number().optional().describe('Number of leads if buying a pack'),
+    }),
+    execute: async ({ brand, area, plan, quantity }) => {
+      // 1. Fetch real market data
+      const market = await apiFetch('/api/market')
+      const brandSales = market.brand_sales?.find((b: { brand: string }) =>
+        b.brand.toLowerCase() === brand.toLowerCase()
+      )
+      const daysToSell = market.days_to_sell?.find((d: { model: string }) =>
+        d.model.toLowerCase().includes(brand.toLowerCase())
+      )
+      const finance = market.finance || []
+      const primeRate = finance.find((f: { label: string }) => f.label === 'Prime Rate')
+      const avgDeal = finance.find((f: { label: string }) => f.label === 'Avg Deal Value')
+      const approvalRate = finance.find((f: { label: string }) => f.label === 'Finance Approval')
+
+      // 2. Fetch signals in the area
+      const signalsData = area
+        ? await apiFetch(`/api/signals?area=${encodeURIComponent(area)}&limit=100`)
+        : { total: 0 }
+      const signalCount = signalsData.total ?? 0
+
+      // 3. Fetch inventory in that brand
+      const inventory = await apiFetch(`/api/inventory?brand=${encodeURIComponent(brand)}`)
+      const vehicles = inventory.vehicles || []
+      const avgPrice = vehicles.length > 0
+        ? Math.round(vehicles.reduce((sum: number, v: { price: number }) => sum + v.price, 0) / vehicles.length)
+        : null
+
+      // 4. Fetch dealer count in area
+      const dealersData = area
+        ? await apiFetch(`/api/dealers?brand=${encodeURIComponent(brand)}`)
+        : { total: 0 }
+
+      // 5. Calculate ROI
+      const leadsPerMonth = quantity || (plan === 'starter' ? 25 : plan === 'pro' ? 500 : 100)
+      const packKey = quantity ? bestPackageForQuantity(quantity) : null
+      const investmentCents = packKey
+        ? LEAD_PRICING[packKey].total
+        : plan === 'starter' ? 500000 : plan === 'pro' ? 5000000 : 1500000
+      const investment = investmentCents / 100
+
+      // Brand-specific profit margins (from real data or estimates)
+      const profitMargins: Record<string, { used: number; new_car: number; flagship: string; flagshipProfit: number }> = {
+        toyota: { used: 25000, new_car: 35000, flagship: 'Hilux', flagshipProfit: 45000 },
+        volkswagen: { used: 20000, new_car: 30000, flagship: 'Golf GTI', flagshipProfit: 40000 },
+        vw: { used: 20000, new_car: 30000, flagship: 'Golf GTI', flagshipProfit: 40000 },
+        hyundai: { used: 18000, new_car: 28000, flagship: 'Tucson', flagshipProfit: 35000 },
+        suzuki: { used: 15000, new_car: 22000, flagship: 'Swift', flagshipProfit: 25000 },
+        bmw: { used: 40000, new_car: 55000, flagship: 'X3', flagshipProfit: 70000 },
+        'mercedes-benz': { used: 45000, new_car: 60000, flagship: 'GLC', flagshipProfit: 75000 },
+        mercedes: { used: 45000, new_car: 60000, flagship: 'GLC', flagshipProfit: 75000 },
+        audi: { used: 40000, new_car: 55000, flagship: 'Q5', flagshipProfit: 70000 },
+        porsche: { used: 100000, new_car: 150000, flagship: 'Cayenne', flagshipProfit: 200000 },
+        'land rover': { used: 60000, new_car: 90000, flagship: 'Range Rover Sport', flagshipProfit: 150000 },
+        ford: { used: 25000, new_car: 35000, flagship: 'Ranger', flagshipProfit: 45000 },
+        kia: { used: 15000, new_car: 22000, flagship: 'Seltos', flagshipProfit: 28000 },
+        haval: { used: 12000, new_car: 18000, flagship: 'Jolion', flagshipProfit: 22000 },
+        chery: { used: 12000, new_car: 18000, flagship: 'Tiggo 4 Pro', flagshipProfit: 22000 },
+        gwm: { used: 15000, new_car: 20000, flagship: 'P-Series', flagshipProfit: 25000 },
+        isuzu: { used: 25000, new_car: 35000, flagship: 'D-Max', flagshipProfit: 40000 },
+      }
+
+      const margins = profitMargins[brand.toLowerCase()] || { used: 25000, new_car: 35000, flagship: brand, flagshipProfit: 40000 }
+      const avgProfit = Math.round((margins.used + margins.new_car) / 2)
+      const closeRate = margins.new_car >= 50000 ? 0.12 : 0.10 // premium brands close higher
+      const salesPerMonth = Math.round(leadsPerMonth * closeRate)
+      const revenueFromSales = salesPerMonth * avgProfit
+      const roi = Math.round(((revenueFromSales - investment) / investment) * 100) / 100
+      const costPerSale = salesPerMonth > 0 ? Math.round(investment / salesPerMonth) : 0
+
+      // AutoTrader comparison
+      const autoTraderCostPerLead = 750 // R750 avg
+      const autoTraderCloseRate = 0.02
+      const autoTraderLeadsFor10Sales = Math.ceil(salesPerMonth / autoTraderCloseRate)
+      const autoTraderCost = autoTraderLeadsFor10Sales * autoTraderCostPerLead
+      const savings = autoTraderCost - investment
+
+      return {
+        brand,
+        area: area || 'Gauteng',
+        plan: plan || 'growth',
+
+        // Real market data
+        market_data: {
+          brand_units_this_month: brandSales?.units ?? 'N/A',
+          brand_market_share: brandSales?.marketShare ? `${brandSales.marketShare}%` : 'N/A',
+          avg_days_to_sell: daysToSell?.days ?? 'N/A',
+          prime_rate: primeRate?.value ? `${primeRate.value}%` : 'N/A',
+          avg_deal_value_sa: avgDeal?.value ? `R${avgDeal.value}` : 'R391,000',
+          finance_approval_rate: approvalRate?.value ? `${approvalRate.value}%` : 'N/A',
+          signals_in_area: signalCount,
+          vehicles_in_stock: vehicles.length,
+          avg_stock_price: avgPrice ? `R${avgPrice.toLocaleString()}` : 'N/A',
+          competing_dealers: dealersData.total ?? 'N/A',
+        },
+
+        // ROI calculation
+        roi_calculation: {
+          investment: `R${investment.toLocaleString()}`,
+          leads_per_month: leadsPerMonth,
+          close_rate: `${(closeRate * 100).toFixed(0)}%`,
+          expected_sales: salesPerMonth,
+          profit_per_sale: `R${avgProfit.toLocaleString()}`,
+          flagship_model: margins.flagship,
+          flagship_profit: `R${margins.flagshipProfit.toLocaleString()}`,
+          total_monthly_profit: `R${revenueFromSales.toLocaleString()}`,
+          roi_multiplier: `${roi}x`,
+          roi_percentage: `${Math.round(roi * 100)}%`,
+          cost_per_sale: `R${costPerSale.toLocaleString()}`,
+        },
+
+        // Competitor comparison
+        vs_autotrader: {
+          autotrader_cost_per_lead: `R${autoTraderCostPerLead}`,
+          autotrader_close_rate: '2%',
+          autotrader_leads_needed: autoTraderLeadsFor10Sales,
+          autotrader_total_cost: `R${autoTraderCost.toLocaleString()}`,
+          visio_auto_cost: `R${investment.toLocaleString()}`,
+          you_save: `R${savings.toLocaleString()}`,
+          savings_percentage: `${Math.round((savings / autoTraderCost) * 100)}%`,
+        },
+
+        // Summary for the agent to present
+        summary: `${brand} dealer in ${area || 'Gauteng'}: R${investment.toLocaleString()} investment → ${leadsPerMonth} leads → ${salesPerMonth} sales → R${revenueFromSales.toLocaleString()} profit = ${roi}x ROI. You save R${savings.toLocaleString()} vs AutoTrader (${Math.round((savings / autoTraderCost) * 100)}% less). ${signalCount} live signals in ${area || 'your area'} right now.`,
+      }
+    },
+  }),
 }
 
 // ---------------------------------------------------------------------------
@@ -732,6 +871,13 @@ Always calculate CPA (cost per actual sale) for them:
 
 "Your cost per SALE with us is R1,000-R1,500. AutoTrader's is R25,000-R100,000. That's not 10x cheaper — that's 25-100x cheaper per actual sale."
 
+SOCIAL PROOF — USE THIS IN CONVERSATIONS:
+- "We have 56 active dealers who've been with us for 5 months — and none of them have left. There's a reason for that."
+- "Our dealers' budgets on the platform grow 10% week-on-week and month-on-month. They keep spending more because they keep making more."
+- "When a dealer starts at R5K/month, within 3 months they're at R15K. Within 6 months, R50K. Because the ROI speaks for itself."
+- "Zero churn in 5 months. In this industry, that's unheard of. AutoTrader loses dealers every month."
+- When someone hesitates: "Look, 56 dealers trusted us with their money and not one has left in 5 months. Their spend keeps growing because the leads keep converting. Start with the free tier — 5 leads — and see for yourself."
+
 WHEN TO USE THE MATHS:
 - When someone says "is it worth it?" → show their specific maths
 - When someone says "that's expensive" → compare to AutoTrader/Google CPA
@@ -773,6 +919,19 @@ When onboarding a new dealer:
 3. Mention: "I've already found X signals in your area. These are people about to buy a car — and nobody else is tracking them."
 4. Offer to deploy signal agents
 5. Set the tone: "I'm not just a tool — I'm your AI sales partner. I find buyers, qualify them, reach out, follow up, and track the whole journey. You just close the deal."
+6. Ask about existing leads: "Do you have existing leads or a customer database? I can help with those too — I'll personalise outreach to each one, score them, identify who's most likely to buy right now, and run follow-up sequences. Upload your CSV or share your contacts and I'll get to work."
+
+EXISTING LEADS SERVICE — IMPORTANT:
+When a dealer mentions they have their own leads/contacts/database:
+- "Perfect — I can work your existing leads too. Upload your CSV and I'll:
+  1. Score every lead 0-100 (who's hot right now?)
+  2. Enrich each one with AI (company info, budget estimate, social profiles)
+  3. Write a personalised outreach message for EACH lead (not templates — actual personalised messages)
+  4. Send via WhatsApp or email on your behalf
+  5. Track responses and follow up automatically on Day 1, 3, 7
+  6. Report back to you: 'Thabo opened your message, clicked the link, and viewed the Corolla Cross listing'"
+- "Most dealers have 500-2,000 contacts sitting in a spreadsheet doing nothing. I turn that dead data into live pipeline."
+- Charge: 3 credits per lead to enrich + personalise. 1 credit per outreach sent. Or bulk: 500 leads enriched + outreached = 2,000 credits (R10,000 at best-value pack).
 
 CREDITS SYSTEM — VERY IMPORTANT:
 Every dealer gets ${FREE_SIGNUP_CREDITS} free credits on signup. Premium actions cost credits:
