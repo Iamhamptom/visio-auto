@@ -167,28 +167,57 @@ function generateMockCars(slug: string, name: string): { brand: string; model: s
       { model: "ZS 1.5 Excite", price: 350000, mileage: 10000 },
       { model: "HS 1.5T Essence", price: 480000, mileage: 15000 },
     ],
+    renault: [
+      { model: "Kiger 1.0 Turbo Intens", price: 340000, mileage: 12000 },
+      { model: "Duster 1.5 dCi Prestige", price: 420000, mileage: 20000 },
+      { model: "Triber 1.0 Prestige", price: 280000, mileage: 15000 },
+    ],
+    gwm: [
+      { model: "P-Series 2.0TD LS", price: 480000, mileage: 18000 },
+      { model: "Haval H6 HEV", price: 580000, mileage: 12000 },
+      { model: "Haval Jolion 1.5T Super Luxury", price: 420000, mileage: 10000 },
+    ],
+    mini: [
+      { model: "Cooper 1.5T", price: 550000, mileage: 15000 },
+      { model: "Countryman Cooper S", price: 720000, mileage: 20000 },
+      { model: "Cooper SE Electric", price: 680000, mileage: 8000 },
+    ],
+    lexus: [
+      { model: "NX 350h EX", price: 950000, mileage: 15000 },
+      { model: "UX 250h EX", price: 780000, mileage: 20000 },
+      { model: "ES 300h SE", price: 880000, mileage: 12000 },
+    ],
+    chery: [
+      { model: "Tiggo 4 Pro 1.5T Elite", price: 380000, mileage: 10000 },
+      { model: "Tiggo 8 Pro Max 2.0T", price: 520000, mileage: 15000 },
+    ],
+    jaguar: [
+      { model: "F-Pace P250 R-Dynamic S", price: 1200000, mileage: 18000 },
+      { model: "E-Pace P200 R-Dynamic SE", price: 950000, mileage: 22000 },
+      { model: "XF P300 R-Dynamic HSE", price: 1100000, mileage: 15000 },
+    ],
+    jetour: [
+      { model: "Dashing 1.5T", price: 380000, mileage: 8000 },
+      { model: "X70 Plus 1.5T", price: 420000, mileage: 12000 },
+    ],
+    grenadier: [
+      { model: "Grenadier Station Wagon", price: 1350000, mileage: 5000 },
+      { model: "Grenadier Utility", price: 1280000, mileage: 8000 },
+    ],
   };
 
-  // Find matching brand from slug
+  // Find matching brand from slug — check longest brand names first
   const slugLower = slug.toLowerCase();
   let matchedBrand = "toyota"; // default
-  for (const brand of Object.keys(brandModels)) {
+  const brandsByLength = Object.keys(brandModels).sort((a, b) => b.length - a.length);
+  for (const brand of brandsByLength) {
     if (slugLower.includes(brand)) { matchedBrand = brand; break; }
   }
 
-  // Check for multi-brand groups
-  if (slugLower.includes("cmh") || slugLower.includes("smg") || slugLower.includes("hatfield") || slugLower.includes("westvaal")) {
-    // Try to extract brand from the full slug
-    for (const brand of Object.keys(brandModels)) {
-      if (slugLower.includes(brand)) { matchedBrand = brand; break; }
-    }
-  }
-
   const models = brandModels[matchedBrand] || brandModels.toyota;
-  const brandName = matchedBrand.charAt(0).toUpperCase() + matchedBrand.slice(1);
 
   return models.map((m) => ({
-    brand: brandName === "Land-rover" ? "Land Rover" : brandName === "Mg" ? "MG" : brandName,
+    brand: ({ "land-rover": "Land Rover", mg: "MG", bmw: "BMW", gwm: "GWM", mini: "MINI" } as Record<string, string>)[matchedBrand] ?? matchedBrand.charAt(0).toUpperCase() + matchedBrand.slice(1),
     model: m.model,
     year: 2024 + Math.floor(Math.random() * 2),
     price: m.price + Math.floor(Math.random() * 50000) - 25000,
