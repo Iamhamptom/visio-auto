@@ -14,6 +14,8 @@ import { collectNewsSignals } from './news'
 import { collectLifeEventSignals } from './life-events'
 import { collectRSSSignals } from './rss'
 import { collectCalendarSignals } from './calendar'
+import { collectYouTubeSignals } from './youtube'
+import { collectFacebookSignals } from './facebook-groups'
 
 export const COLLECTORS: Record<string, CollectorFn> = {
   cipc: collectCIPCSignals,
@@ -24,6 +26,8 @@ export const COLLECTORS: Record<string, CollectorFn> = {
   life_events: collectLifeEventSignals,
   rss: collectRSSSignals,
   calendar: collectCalendarSignals,
+  youtube: collectYouTubeSignals,
+  facebook: collectFacebookSignals,
 }
 
 export type CollectorName = keyof typeof COLLECTORS
