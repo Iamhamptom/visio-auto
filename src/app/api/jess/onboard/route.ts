@@ -195,7 +195,9 @@ export async function POST(request: NextRequest) {
     ? `${conversation}\n\nUSER: ${userPromptContent}${formContextLine}${intelContextLine}`
     : `[NEW CONVERSATION]${formContextLine}${intelContextLine}`;
 
-  // Run Jess with structured output
+  // Run Jess with structured output. Gemini-only — if the key ever gets
+  // disabled again we'll be alerted via the 502 and rotate the key. No
+  // paid fallback provider.
   let result;
   try {
     result = await generateText({
@@ -205,6 +207,7 @@ export async function POST(request: NextRequest) {
       experimental_output: Output.object({ schema: ResponseSchema }),
     });
   } catch (e) {
+    console.error("[jess/onboard] Gemini failed:", (e as Error).message);
     return NextResponse.json(
       {
         error: "Jess failed to respond",
