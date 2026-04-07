@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { JessChatWidget } from "@/components/jess-chat-widget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Visio Auto — AI Automotive Intelligence",
+  title: "Visio Auto — AI Sales Agent for Car Dealerships",
   description:
-    "AI-powered lead generation for South African car dealerships. Qualified buyers delivered to your WhatsApp in under 60 seconds.",
+    "An autonomous AI agent that finds, qualifies, and delivers car buyers to your sales team. 23 predictive signals, personalised outreach, calendar booking, and WhatsApp delivery in under 30 seconds.",
 };
 
 export default function RootLayout({
@@ -30,6 +31,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
+        <JessChatWidget />
       </body>
     </html>
   );
