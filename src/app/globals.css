@@ -84,37 +84,37 @@
 }
 
 .dark {
-  --background: oklch(0.08 0 0); /* OLED black leaning */
+  --background: oklch(0.06 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.12 0 0);
+  --card: oklch(0.10 0 0);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.12 0 0);
+  --popover: oklch(0.10 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.65 0.25 155); /* High-performance emerald green */
+  --primary: oklch(0.65 0.20 155);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.15 0 0);
+  --secondary: oklch(0.12 0 0);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.15 0 0);
+  --muted: oklch(0.12 0 0);
   --muted-foreground: oklch(0.65 0 0);
-  --accent: oklch(0.65 0.25 155);
+  --accent: oklch(0.65 0.20 155);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.65 0.25 155 / 50%);
-  --chart-1: oklch(0.65 0.25 155);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.65 0.20 155 / 40%);
+  --chart-1: oklch(0.65 0.20 155);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.04 0 0); /* Pure OLED black for sidebar */
+  --sidebar: oklch(0.04 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.65 0.25 155); /* Emerald tone */
+  --sidebar-primary: oklch(0.65 0.20 155);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.15 0 0);
+  --sidebar-accent: oklch(0.12 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.65 0.25 155);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: oklch(0.65 0.20 155);
 }
 
 @layer base {
@@ -122,8 +122,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900/40 via-background to-background min-h-screen;
-    background-attachment: fixed;
+    @apply bg-background text-foreground min-h-screen;
   }
   html {
     @apply font-sans;
@@ -131,36 +130,274 @@
 }
 
 @layer utilities {
-  .glass {
-    @apply bg-black/60 backdrop-blur-xl border-l-[3px] border-l-emerald-500 border-t border-r border-b border-t-white/10 border-r-white/10 border-b-white/10 shadow-[8px_8px_30px_-5px_rgba(0,0,0,0.8)] rounded-none;
-  }
+  /* VRL-style glass panels */
   .glass-panel {
-    @apply bg-zinc-950/80 backdrop-blur-md border border-zinc-800/80 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.02)] rounded-sm;
+    @apply bg-white/[0.02] backdrop-blur-md border border-white/[0.06];
   }
-  .text-glow {
-    text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+  .glass-panel-hover {
+    @apply bg-white/[0.02] backdrop-blur-md border border-white/[0.06] hover:border-emerald-500/20 transition-colors;
   }
-  .emerald-glow {
-    box-shadow: 0 0 30px -5px rgba(16, 185, 129, 0.4);
+
+  /* Section label — monospace badge */
+  .section-label {
+    @apply font-mono text-[11px] uppercase tracking-[0.3em] text-white/40;
+  }
+
+  /* Heading — elegant extralight */
+  .heading-xl {
+    @apply text-4xl md:text-5xl lg:text-6xl font-extralight tracking-tight text-white;
+  }
+  .heading-lg {
+    @apply text-3xl md:text-4xl font-extralight tracking-tight text-white;
+  }
+  .heading-md {
+    @apply text-2xl font-extralight tracking-tight text-white;
+  }
+
+  /* Stat box — VRL style */
+  .stat-box {
+    @apply bg-white/[0.03] border border-white/[0.06] px-6 py-5 text-center;
+  }
+  .stat-value {
+    @apply font-mono text-3xl font-extralight text-emerald-400;
+  }
+  .stat-label {
+    @apply font-mono text-[11px] uppercase tracking-[0.2em] text-white/40 mt-1;
+  }
+
+  /* Key finding callout — VRL style */
+  .callout {
+    @apply border-l-[3px] border-l-emerald-500/60 bg-white/[0.02] px-6 py-4 text-[15px] leading-relaxed text-white/60 italic;
+  }
+
+  /* Emerald accent text */
+  .text-accent {
+    @apply text-emerald-400;
+  }
+
+  /* Subtle grid background */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* Dot grid background */
+  .bg-dots {
+    background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 24px 24px;
   }
 }
 
-/* Carbon Fiber Texture Utility */
-.bg-carbon {
-  background-image: 
-    linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%, #111),
-    linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%, #111);
-  background-position: 0 0, 4px 4px;
-  background-size: 8px 8px;
-  background-color: #0a0a0a;
+/* ─── Window Frame ─── */
+.window-frame {
+  @apply border border-white/[0.06] bg-white/[0.01] overflow-hidden;
 }
 
-/* Market Terminal — Ticker scroll animation */
-@keyframes ticker {
+/* ─── Custom Cursor ─── */
+.cursor-xp {
+  cursor: crosshair;
+}
+
+/* ─── Click Pop Effect (Windows XP selection burst) ─── */
+.click-pop {
+  position: fixed;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  margin-top: -4px;
+  background: rgba(16, 185, 129, 0.6);
+  pointer-events: none;
+  animation: clickPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 9999;
+}
+
+.click-ring {
+  position: fixed;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  margin-top: -3px;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  pointer-events: none;
+  animation: clickRing 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 9999;
+}
+
+.click-particle {
+  position: fixed;
+  width: 3px;
+  height: 3px;
+  margin-left: -1.5px;
+  margin-top: -1.5px;
+  background: rgba(16, 185, 129, 0.5);
+  pointer-events: none;
+  animation: clickParticle 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 9999;
+}
+
+@keyframes clickPop {
   0% {
-    transform: translateX(0);
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(3);
+    opacity: 0.6;
   }
   100% {
-    transform: translateX(-50%);
+    transform: scale(5);
+    opacity: 0;
   }
+}
+
+@keyframes clickRing {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(8);
+    opacity: 0;
+  }
+}
+
+@keyframes clickParticle {
+  0% {
+    transform: rotate(var(--angle)) translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(var(--angle)) translateX(24px);
+    opacity: 0;
+  }
+}
+
+/* ─── Spring Pop (for elements that "pop" into view like XP windows) ─── */
+@keyframes springPop {
+  0% {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.03);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.spring-pop {
+  animation: springPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ─── Selection Highlight (XP blue-select feel, but emerald) ─── */
+::selection {
+  background: rgba(16, 185, 129, 0.25);
+  color: white;
+}
+
+/* ─── Smooth fade-swap for hero words ─── */
+@keyframes fadeSwap {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Market Terminal — Ticker scroll animation ─── */
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* ─── Ken Burns slow zoom for cinematic backgrounds ─── */
+@keyframes kenBurns {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  50% {
+    transform: scale(1.06) translate(-1%, -1%);
+  }
+  100% {
+    transform: scale(1) translate(0, 0);
+  }
+}
+
+.ken-burns {
+  animation: kenBurns 30s ease-in-out infinite;
+}
+
+/* ─── Slow drift for ambient backgrounds ─── */
+@keyframes slowDrift {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(8px, -8px); }
+}
+
+.slow-drift {
+  animation: slowDrift 12s ease-in-out infinite;
+}
+
+/* ─── Image shimmer loading ─── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.02) 0%,
+    rgba(16,185,129,0.06) 50%,
+    rgba(255,255,255,0.02) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2.5s ease-in-out infinite;
+}
+
+/* ─── Glow pulse for active indicators ─── */
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+}
+
+.glow-pulse {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+/* ─── Smooth section transitions ─── */
+section {
+  scroll-margin-top: 80px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* ─── Image hover float ─── */
+.float-on-hover {
+  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.float-on-hover:hover {
+  transform: translateY(-6px);
+}
+
+/* ─── Pixel scanline overlay (subtle XP CRT feel) ─── */
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  pointer-events: none;
 }
