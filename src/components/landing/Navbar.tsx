@@ -3,13 +3,17 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Car, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { VisioLogoMark } from "./VisioLogo";
 
 const navLinks = [
-  { label: "Why Visio Auto", href: "/why-visio-auto" },
-  { label: "How It Works", href: "#how-it-works" },
-  { label: "Pricing", href: "#pricing" },
+  { label: "Suite", href: "#suite" },
+  { label: "Platform", href: "#platform" },
+  { label: "Signals", href: "#signal-universe" },
+  { label: "Intelligence", href: "#intelligence" },
+  { label: "Concierge", href: "#concierge" },
+  { label: "Papers", href: "/papers/suite-overview" },
 ];
 
 export default function Navbar() {
@@ -28,19 +32,17 @@ export default function Navbar() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ type: "spring", stiffness: 120, damping: 20 }}
-        className={`fixed top-0 z-50 w-full transition-all duration-300 ${
+        className={`fixed top-0 z-50 w-full transition-all duration-500 ${
           scrolled
-            ? "border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-xl shadow-lg shadow-black/20"
+            ? "border-b border-white/[0.06] bg-[#030f0a]/90 backdrop-blur-xl"
             : "bg-transparent"
         }`}
       >
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 transition-transform group-hover:scale-110">
-              <Car className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-lg font-semibold text-white tracking-tight">
+          <Link href="/" className="flex items-center gap-3 group">
+            <VisioLogoMark size={28} />
+            <span className="text-sm font-light tracking-wide text-white/80">
               Visio Auto
             </span>
           </Link>
@@ -51,16 +53,20 @@ export default function Navbar() {
               <a
                 key={link.href}
                 href={link.href}
-                className="text-sm text-zinc-400 transition-colors hover:text-white"
+                className="font-mono text-[11px] uppercase tracking-[0.15em] text-white/40 transition-colors hover:text-white/80"
               >
                 {link.label}
               </a>
             ))}
+          </div>
+
+          {/* Desktop CTAs */}
+          <div className="hidden items-center gap-3 md:flex">
             <Link href="/dashboard">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                className="text-[12px] font-mono uppercase tracking-wider text-white/40 hover:text-white/80 hover:bg-white/[0.04]"
               >
                 Dashboard
               </Button>
@@ -68,20 +74,20 @@ export default function Navbar() {
             <Link href="/get-started">
               <Button
                 size="sm"
-                className="bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20"
+                className="bg-emerald-600/90 text-white text-[12px] font-mono uppercase tracking-wider hover:bg-emerald-500 h-8 px-4"
               >
-                Start Free Trial
+                Get Started
               </Button>
             </Link>
           </div>
 
           {/* Mobile Hamburger */}
           <button
-            className="md:hidden text-zinc-400 hover:text-white"
+            className="md:hidden text-white/40 hover:text-white"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
           >
-            {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </motion.nav>
@@ -90,38 +96,38 @@ export default function Navbar() {
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            initial={{ opacity: 0, x: "100%" }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: "100%" }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed inset-0 z-40 bg-zinc-950/98 backdrop-blur-xl pt-20 px-6 md:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-40 bg-[#030f0a]/98 backdrop-blur-xl pt-20 px-6 md:hidden"
           >
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-8">
               {navLinks.map((link, i) => (
                 <motion.a
                   key={link.href}
                   href={link.href}
-                  initial={{ opacity: 0, x: 40 }}
+                  initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="text-2xl font-medium text-white"
+                  transition={{ delay: i * 0.08 }}
+                  className="font-mono text-sm uppercase tracking-[0.2em] text-white/60 hover:text-white"
                   onClick={() => setMobileOpen(false)}
                 >
                   {link.label}
                 </motion.a>
               ))}
-              <div className="mt-4 flex flex-col gap-3">
+              <div className="mt-4 flex flex-col gap-3 border-t border-white/[0.06] pt-6">
                 <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
                   <Button
                     variant="outline"
-                    className="w-full border-zinc-700 text-zinc-300"
+                    className="w-full border-white/[0.08] text-white/60 bg-transparent"
                   >
                     Dashboard
                   </Button>
                 </Link>
                 <Link href="/get-started" onClick={() => setMobileOpen(false)}>
                   <Button className="w-full bg-emerald-600 text-white hover:bg-emerald-500">
-                    Start Free Trial
+                    Get Started
                   </Button>
                 </Link>
               </div>

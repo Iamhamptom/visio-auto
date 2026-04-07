@@ -1,214 +1,287 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  motion,
-  useMotionValue,
-  useSpring,
-  useScroll,
-  useTransform,
-} from "framer-motion";
-import { Gauge, ArrowRight, CarFront, Globe, Zap, Settings, ShieldAlert, Crosshair } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { VisioLogoHero } from "./VisioLogo";
+import WindowFrame from "./WindowFrame";
+import { JessAvatar } from "./JessAvatar";
+import { IconSignal, IconEmail, IconCalendar, IconPhone } from "./RetroIcons";
 
-const swapWords = [
-  "Predict the Next Buyer.",
-  "Shift the Metal.",
-  "Dominate the Market.",
-  "Beat the Competition."
+const capabilities = [
+  "Finding your next buyer",
+  "Pre-approving via Visio Approve",
+  "Inspecting cars via Visio Inspect",
+  "Running WhatsApp BDC for dealers",
+  "Pricing intent for OEMs and banks",
+  "Verifying income via Open Finance",
+  "Securing transactions via Visio Trust",
+  "Delivering luxury cars to Lagos",
+  "Speaking French in Lubumbashi",
 ];
 
 const stats = [
-  { label: "Dealerships Wired In", value: "329+", icon: CarFront },
-  { label: "Predictive Signals", value: "23", icon: Crosshair },
-  { label: "Regional Dialects", value: "6", icon: Globe },
-  { label: "Lead Delivery Time", value: "< 30s", icon: Zap },
+  { value: "329+", label: "Dealerships" },
+  { value: "23", label: "Signal Types" },
+  { value: "<30s", label: "Lead Delivery" },
+  { value: "4.2x", label: "Avg. ROI" },
+];
+
+const agentLog = [
+  { time: "09:14:02", action: "Signal detected", detail: "Lease expiring — Sandton", color: "text-emerald-400/70" },
+  { time: "09:14:03", action: "Lead scored", detail: "Score: 87/100 — High Intent", color: "text-emerald-400/50" },
+  { time: "09:14:05", action: "VIN matched", detail: "2024 BMW 320i — R589,000", color: "text-white/40" },
+  { time: "09:14:06", action: "Outreach sent", detail: "Email + WhatsApp dispatched", color: "text-emerald-400/50" },
+  { time: "09:14:08", action: "Booking created", detail: "Test drive — Thu 14:00", color: "text-white/40" },
+  { time: "09:14:09", action: "Lead delivered", detail: "→ Sales team via WhatsApp", color: "text-emerald-400/70" },
 ];
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.15, duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
+    transition: { delay: i * 0.12, duration: 0.7, ease: [0.16, 1, 0.3, 1] as const },
   }),
 };
 
 export default function Hero() {
-  const [wordIndex, setWordIndex] = useState(0);
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const springX = useSpring(mouseX, { stiffness: 50, damping: 20 });
-  const springY = useSpring(mouseY, { stiffness: 50, damping: 20 });
-
+  const [capIndex, setCapIndex] = useState(0);
+  const [logIndex, setLogIndex] = useState(0);
   const { scrollY } = useScroll();
-  const parallaxY = useTransform(scrollY, [0, 600], [0, 150]);
+  const heroOpacity = useTransform(scrollY, [0, 500], [1, 0]);
+  const heroY = useTransform(scrollY, [0, 500], [0, 80]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setWordIndex((prev) => (prev + 1) % swapWords.length);
-    }, 2500);
+      setCapIndex((prev) => (prev + 1) % capabilities.length);
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      mouseX.set(e.clientX - rect.left - rect.width / 2);
-      mouseY.set(e.clientY - rect.top - rect.height / 2);
-    },
-    [mouseX, mouseY]
-  );
+  // Animate agent log entries one by one
+  useEffect(() => {
+    if (logIndex < agentLog.length) {
+      const timer = setTimeout(() => setLogIndex((p) => p + 1), 800);
+      return () => clearTimeout(timer);
+    }
+    // Loop after all entries shown
+    const reset = setTimeout(() => setLogIndex(0), 3000);
+    return () => clearTimeout(reset);
+  }, [logIndex]);
 
   return (
-    <section
-      className="relative min-h-screen overflow-hidden pt-32 pb-20 bg-black"
-      onMouseMove={handleMouseMove}
-    >
-      {/* Hyper-realistic Background Image */}
-      <div className="absolute inset-0 z-0">
-        <Image 
-          src="/hero-car-green.png" 
-          alt="Luxury Green Hypercar emerging from shadows" 
-          fill
-          priority
-          className="object-cover object-center opacity-60 mix-blend-lighten pointer-events-none"
-        />
-        {/* Vignette & Bottom Fade */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,black_100%)] opacity-80" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-black" />
-      </div>
-
-      {/* Mouse-following telemetry scanner line */}
+    <section className="relative min-h-screen overflow-hidden bg-[#030f0a]">
+      {/* Cinematic car background — generated by Gemini Nano Banana */}
       <motion.div
-        className="pointer-events-none absolute h-[2px] w-[800px] bg-emerald-500/40 blur-[2px] z-10"
-        style={{
-          y: springY,
-          left: "50%",
-          translateX: "-50%",
-        }}
-      />
-
-      <motion.div
-        style={{ y: parallaxY }}
-        className="relative mx-auto max-w-7xl px-6 text-center"
+        className="absolute inset-0 z-0"
+        initial={{ scale: 1.15, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 2, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* Badge */}
-        <motion.div
-          custom={0}
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-        >
-          <Badge className="mb-8 border-emerald-500/30 bg-black/60 backdrop-blur-md text-emerald-500 hover:bg-emerald-500/10 px-4 py-1.5 text-sm uppercase tracking-[0.2em] font-mono rounded-none border-l-2">
-            <Gauge className="mr-2 h-4 w-4" />
-            AUTOMOTIVE INTELLIGENCE TERMINAL
-          </Badge>
-        </motion.div>
+        <div className="absolute inset-0 ken-burns">
+          <Image
+            src="/generated/hero-car.png"
+            alt=""
+            fill
+            priority
+            className="object-cover object-center opacity-50 mix-blend-screen pointer-events-none"
+          />
+        </div>
+        {/* Vignette overlays */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#030f0a_85%)]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#030f0a] via-transparent to-[#030f0a]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#030f0a] via-transparent to-[#030f0a]/60" />
+      </motion.div>
 
-        {/* Headline with word swap */}
-        <motion.h1
-          custom={1}
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-          className="mx-auto max-w-5xl text-5xl font-black uppercase leading-[1.0] tracking-tighter text-white sm:text-6xl md:text-7xl lg:text-8xl"
-          style={{ textShadow: "0 10px 40px rgba(0,0,0,0.8)" }}
-        >
-          <span className="relative inline-block min-h-[1.2em]">
-            <span className="sr-only">{swapWords[wordIndex]}</span>
-            <span
-              key={wordIndex}
-              className="bg-gradient-to-b from-white to-zinc-500 bg-clip-text text-transparent inline-block animate-[fadeSwap_0.4s_cubic-bezier(0.87,0,0.13,1)]"
-            >
-              {swapWords[wordIndex]}
-            </span>
-          </span>
-          <br />
-          <span className="text-zinc-600">Before They Enter The Showroom.</span>
-        </motion.h1>
+      {/* Grid pattern overlay */}
+      <div className="absolute inset-0 bg-grid opacity-40 z-0" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.06)_0%,transparent_70%)] z-0" />
+      <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#030f0a] to-transparent z-0" />
 
-        {/* Subtitle */}
-        <motion.p
-          custom={2}
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-          className="mx-auto mt-8 max-w-2xl text-lg font-medium leading-relaxed text-zinc-300 md:text-xl font-mono uppercase tracking-wider bg-black/40 backdrop-blur-sm p-4 border border-white/5"
-        >
-          We intercept highly qualified car buyers moments before they make a decision. Scored, verified, and pushed directly to your sales floor in <span className="text-emerald-500 font-bold">30 seconds</span>.
-        </motion.p>
-
-        {/* CTAs */}
-        <motion.div
-          custom={3}
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-          className="mt-12 flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
-        >
-          <Link href="/get-started">
-            <Button
-              size="lg"
-              className="h-14 gap-2.5 bg-emerald-600 px-10 rounded-none text-base font-bold uppercase tracking-widest text-white hover:bg-emerald-500 shadow-[0_0_30px_-5px_rgba(16,185,129,0.5)] transition-all hover:scale-[1.03]"
-            >
-              Engage Terminal
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-          <Link href="/why-visio-auto">
-            <Button
-              variant="outline"
-              size="lg"
-              className="h-14 gap-2.5 border-zinc-700 bg-black/50 backdrop-blur-md rounded-none px-10 text-base font-bold uppercase tracking-widest text-zinc-300 hover:bg-white hover:text-black hover:border-white transition-all"
-            >
-              <Settings className="h-4 w-4" />
-              View Specifications
-            </Button>
-          </Link>
-        </motion.div>
-
-        {/* Stats bar */}
-        <motion.div
-          custom={4}
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-          className="mx-auto mt-24 grid max-w-4xl grid-cols-2 gap-4 md:grid-cols-4 relative z-20"
-        >
-          {stats.map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              whileHover={{ scale: 1.02, y: -2 }}
-              transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              className="flex flex-col items-start gap-2 border-l-2 border-emerald-500/30 bg-black/60 px-5 py-6 backdrop-blur-xl hover:border-emerald-500 transition-colors shadow-2xl"
-            >
-              <stat.icon className="mb-2 h-6 w-6 text-emerald-500" />
-              <span className="font-mono text-3xl font-black text-white tracking-tighter">
-                {stat.value}
+      <motion.div
+        style={{ opacity: heroOpacity, y: heroY }}
+        className="relative z-10 mx-auto max-w-6xl px-6 pt-32 pb-16"
+      >
+        {/* Two-column layout */}
+        <div className="grid lg:grid-cols-2 gap-16 items-start">
+          {/* Left — Copy */}
+          <div>
+            {/* Logo + label */}
+            <motion.div custom={0} variants={fadeUp} initial="hidden" animate="visible" className="flex items-center gap-4">
+              <VisioLogoHero />
+              <span className="font-mono text-[11px] uppercase tracking-[0.3em] text-emerald-400/60 border border-emerald-500/20 bg-emerald-500/[0.05] px-3 py-1">
+                Meet Jess
               </span>
-              <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">{stat.label}</span>
             </motion.div>
+
+            {/* Headline */}
+            <motion.h1
+              custom={1}
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+              className="mt-10 text-4xl font-extralight leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-6xl"
+            >
+              Your AI sales agent.
+              <br />
+              She sells cars{" "}
+              <span className="text-emerald-400 font-light">for you</span>.
+            </motion.h1>
+
+            {/* Jess intro */}
+            <motion.div custom={2} variants={fadeUp} initial="hidden" animate="visible" className="mt-8 flex items-center gap-4">
+              <JessAvatar size={52} />
+              <div>
+                <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-emerald-400/60">
+                  Jess &middot; AI Sales Agent
+                </div>
+                <p className="text-[14px] text-white/50 mt-1">
+                  Right now, she&apos;s{" "}
+                  <span
+                    key={capIndex}
+                    className="text-emerald-400/90 inline-block animate-[fadeSwap_0.4s_ease-out]"
+                  >
+                    {capabilities[capIndex]}
+                  </span>
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Capability icons */}
+            <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible" className="mt-8 flex flex-wrap gap-5">
+              {[
+                { icon: IconSignal, label: "Signals" },
+                { icon: IconEmail, label: "Outreach" },
+                { icon: IconPhone, label: "Calls" },
+                { icon: IconCalendar, label: "Booking" },
+              ].map((cap) => (
+                <div key={cap.label} className="flex items-center gap-2">
+                  <cap.icon size={20} />
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/25">
+                    {cap.label}
+                  </span>
+                </div>
+              ))}
+            </motion.div>
+
+            {/* CTAs */}
+            <motion.div custom={4} variants={fadeUp} initial="hidden" animate="visible" className="mt-10 flex flex-col items-start gap-4 sm:flex-row">
+              <Link href="/get-started">
+                <Button
+                  size="lg"
+                  className="h-12 gap-2.5 bg-emerald-600 px-8 text-sm font-medium tracking-wide text-white hover:bg-emerald-500 transition-all"
+                >
+                  Start Free Trial
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/why-visio-auto">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-12 gap-2.5 border-white/[0.08] bg-white/[0.02] px-8 text-sm font-medium tracking-wide text-white/70 hover:bg-white/[0.06] hover:text-white transition-all"
+                >
+                  See How It Works
+                </Button>
+              </Link>
+            </motion.div>
+          </div>
+
+          {/* Right — Agent Terminal (Windows XP-style window) */}
+          <motion.div
+            custom={3}
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            className="hidden lg:block"
+          >
+            <WindowFrame title="visio-agent.exe" variant="terminal">
+              <div className="p-5 font-mono text-[12px] leading-relaxed min-h-[320px] scanlines relative">
+                {/* Header */}
+                <div className="text-emerald-500/30 mb-1">
+                  ╔══════════════════════════════════════╗
+                </div>
+                <div className="text-emerald-500/30 mb-1">
+                  ║&nbsp;&nbsp;VISIO AUTO — AGENT v2.4.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;║
+                </div>
+                <div className="text-emerald-500/30 mb-4">
+                  ╚══════════════════════════════════════╝
+                </div>
+
+                <div className="text-white/20 mb-3">
+                  <span className="text-emerald-500/40">&gt;</span> Agent active. Monitoring 23 signals across 329 dealerships...
+                </div>
+
+                {/* Live agent log entries */}
+                <div className="space-y-1.5">
+                  {agentLog.slice(0, logIndex).map((entry, i) => (
+                    <motion.div
+                      key={`${entry.time}-${i}`}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] as const }}
+                      className="flex gap-3"
+                    >
+                      <span className="text-white/15 shrink-0">{entry.time}</span>
+                      <span className={entry.color}>{entry.action}</span>
+                      <span className="text-white/20">{entry.detail}</span>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Blinking cursor */}
+                <div className="mt-4 flex items-center gap-1">
+                  <span className="text-emerald-500/40">&gt;</span>
+                  <span className="w-2 h-4 bg-emerald-500/50 animate-pulse" />
+                </div>
+              </div>
+            </WindowFrame>
+
+            {/* Mini stat windows below */}
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              {stats.map((stat) => (
+                <motion.div
+                  key={stat.label}
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                  className="border border-white/[0.06] bg-white/[0.02] px-4 py-3 cursor-pointer hover:bg-white/[0.04] transition-colors"
+                >
+                  <div className="font-mono text-xl font-extralight text-emerald-400">
+                    {stat.value}
+                  </div>
+                  <div className="font-mono text-[9px] uppercase tracking-[0.25em] text-white/25 mt-0.5">
+                    {stat.label}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Mobile stats (visible below lg) */}
+        <motion.div
+          custom={5}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          className="mt-16 grid grid-cols-2 md:grid-cols-4 border border-white/[0.06] divide-x divide-white/[0.06] lg:hidden"
+        >
+          {stats.map((stat) => (
+            <div key={stat.label} className="px-6 py-5 text-center bg-white/[0.02]">
+              <div className="font-mono text-2xl font-extralight text-emerald-400">
+                {stat.value}
+              </div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/30 mt-1.5">
+                {stat.label}
+              </div>
+            </div>
           ))}
         </motion.div>
       </motion.div>
-
-      <style jsx global>{`
-        @keyframes fadeSwap {
-          0% {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </section>
   );
 }

@@ -1,37 +1,41 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Shield, Globe, Bot, Clock } from "lucide-react";
+import { Shield, Globe, Bot, Clock, Award, Lock } from "lucide-react";
 
 const badges = [
   { label: "Built in South Africa", icon: Globe },
   { label: "POPIA Compliant", icon: Shield },
-  { label: "AI-Powered", icon: Bot },
-  { label: "24/7 Automated", icon: Clock },
+  { label: "AI-Powered Agent", icon: Bot },
+  { label: "24/7 Autonomous", icon: Clock },
+  { label: "Enterprise Grade", icon: Award },
+  { label: "Bank-Level Security", icon: Lock },
 ];
 
 export default function TrustBar() {
   return (
-    <section className="border-t border-zinc-800/50 py-12 bg-zinc-900/30">
-      <div className="mx-auto max-w-7xl px-6">
+    <section className="border-y border-white/[0.06] bg-white/[0.01] py-6">
+      <div className="mx-auto max-w-6xl px-6">
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="flex flex-wrap items-center justify-center gap-8 md:gap-16"
+          transition={{ duration: 0.8 }}
+          className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4"
         >
           {badges.map((badge, i) => (
             <motion.div
               key={badge.label}
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1, duration: 0.5 }}
-              className="flex items-center gap-2.5 text-zinc-500"
+              transition={{ delay: i * 0.08, duration: 0.5 }}
+              className="flex items-center gap-2"
             >
-              <badge.icon className="h-4 w-4 text-emerald-500/60" />
-              <span className="text-sm font-medium">{badge.label}</span>
+              <badge.icon className="h-3.5 w-3.5 text-emerald-500/40" />
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/30">
+                {badge.label}
+              </span>
             </motion.div>
           ))}
         </motion.div>

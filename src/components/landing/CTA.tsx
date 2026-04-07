@@ -2,81 +2,58 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function CTA() {
   return (
-    <section className="relative border-t border-zinc-800/50 py-28 overflow-hidden">
-      {/* Emerald gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/40 via-zinc-950 to-emerald-950/20" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-3/4 bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
-
-      {/* Floating particles */}
-      <div className="absolute inset-0 overflow-hidden">
-        {[...Array(6)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute h-1 w-1 rounded-full bg-emerald-500/30"
-            style={{
-              left: `${15 + i * 15}%`,
-              top: `${20 + (i % 3) * 25}%`,
-            }}
-            animate={{
-              y: [0, -30, 0],
-              opacity: [0.2, 0.6, 0.2],
-            }}
-            transition={{
-              duration: 3 + i * 0.5,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: i * 0.4,
-            }}
-          />
-        ))}
-      </div>
+    <section className="relative py-32 overflow-hidden bg-[#030f0a]">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.06)_0%,transparent_60%)]" />
 
       <div className="relative mx-auto max-w-3xl px-6 text-center">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="rounded-3xl border border-emerald-500/20 bg-gradient-to-b from-zinc-900/80 to-zinc-950/90 p-12 md:p-16 backdrop-blur-sm shadow-2xl shadow-emerald-500/5"
+          className="border border-white/[0.06] bg-white/[0.02] p-12 md:p-16"
         >
-          <div className="flex justify-center mb-6">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10">
-              <Sparkles className="h-7 w-7 text-emerald-400" />
-            </div>
-          </div>
+          <span className="section-label">Get Started</span>
 
-          <h2 className="text-3xl font-bold text-white md:text-4xl tracking-tight">
-            Start your free trial — see signals
+          <h2 className="mt-6 heading-lg">
+            See signals in your area
             <br />
-            <span className="bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent">
-              in your area within 24 hours
-            </span>
+            <span className="text-emerald-400">within 24 hours</span>.
           </h2>
 
-          <p className="mx-auto mt-5 max-w-lg text-zinc-400 text-lg">
-            Join 329+ South African dealerships using AI to find their next
-            buyer. No credit card required. Free tier forever.
+          <p className="mx-auto mt-5 max-w-md text-[15px] text-white/40">
+            Deploy your AI sales agent in minutes. 23 predictive signals,
+            personalised outreach, and WhatsApp delivery. No credit card required.
           </p>
 
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link href="/get-started">
               <Button
                 size="lg"
-                className="h-14 gap-2.5 bg-emerald-600 px-10 text-base font-semibold text-white hover:bg-emerald-500 shadow-xl shadow-emerald-500/25 transition-all hover:shadow-emerald-500/35 hover:scale-[1.02]"
+                className="h-12 gap-2.5 bg-emerald-600 px-8 text-sm font-medium text-white hover:bg-emerald-500 transition-all"
               >
                 Start Free Trial
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
+            <Link href="/get-quote">
+              <Button
+                variant="outline"
+                size="lg"
+                className="h-12 border-white/[0.08] bg-white/[0.02] px-8 text-sm text-white/60 hover:bg-white/[0.06] hover:text-white transition-all"
+              >
+                Request a Quote
+              </Button>
+            </Link>
           </div>
 
-          <p className="mt-6 text-sm text-zinc-500">
-            No credit card required. Cancel anytime. 4x ROI guarantee.
+          <p className="mt-8 font-mono text-[10px] uppercase tracking-[0.2em] text-white/20">
+            No credit card required &middot; Cancel anytime &middot; 4x ROI guarantee
           </p>
         </motion.div>
       </div>

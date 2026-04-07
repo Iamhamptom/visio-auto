@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, ChevronLeft, ChevronRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const testimonials = [
   {
@@ -12,7 +11,6 @@ const testimonials = [
     name: "Johan van der Merwe",
     role: "Dealer Principal",
     dealership: "Sandton Motor Group",
-    stars: 5,
     metric: "12 deals in month 1",
   },
   {
@@ -21,7 +19,6 @@ const testimonials = [
     name: "Priya Naidoo",
     role: "Sales Manager",
     dealership: "AutoBay Menlyn",
-    stars: 5,
     metric: "4.2x ROI in 90 days",
   },
   {
@@ -30,14 +27,13 @@ const testimonials = [
     name: "Thabo Mokoena",
     role: "CEO",
     dealership: "Mzansi Motors",
-    stars: 5,
     metric: "3x conversion rate",
   },
 ];
 
 const slideVariants = {
   enter: (direction: number) => ({
-    x: direction > 0 ? 300 : -300,
+    x: direction > 0 ? 200 : -200,
     opacity: 0,
   }),
   center: {
@@ -45,7 +41,7 @@ const slideVariants = {
     opacity: 1,
   },
   exit: (direction: number) => ({
-    x: direction > 0 ? -300 : 300,
+    x: direction > 0 ? -200 : 200,
     opacity: 0,
   }),
 };
@@ -54,15 +50,12 @@ export default function Testimonials() {
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(1);
 
-  const paginate = useCallback(
-    (dir: number) => {
-      setDirection(dir);
-      setCurrent(
-        (prev) => (prev + dir + testimonials.length) % testimonials.length
-      );
-    },
-    []
-  );
+  const paginate = useCallback((dir: number) => {
+    setDirection(dir);
+    setCurrent(
+      (prev) => (prev + dir + testimonials.length) % testimonials.length
+    );
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => paginate(1), 6000);
@@ -70,30 +63,27 @@ export default function Testimonials() {
   }, [paginate]);
 
   return (
-    <section className="relative border-t border-zinc-800/50 bg-zinc-900/20 py-28">
-      <div className="relative mx-auto max-w-7xl px-6">
+    <section className="relative py-32 bg-[#020c07]">
+      <div className="absolute inset-0 bg-grid opacity-20" />
+
+      <div className="relative mx-auto max-w-6xl px-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.7 }}
           className="text-center"
         >
-          <Badge className="mb-4 border-zinc-700 bg-zinc-800/80 text-zinc-300 hover:bg-zinc-800">
-            Testimonials
-          </Badge>
-          <h2 className="text-3xl font-bold text-white md:text-5xl tracking-tight">
-            Trusted by{" "}
-            <span className="bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent">
-              SA&apos;s best dealers
-            </span>
+          <span className="section-label">Testimonials</span>
+          <h2 className="mt-4 heading-xl">
+            Trusted by <span className="text-emerald-400">SA&apos;s best</span>.
           </h2>
         </motion.div>
 
         {/* Carousel */}
         <div className="relative mt-16 mx-auto max-w-3xl">
-          <div className="overflow-hidden rounded-2xl border border-zinc-800/50 bg-zinc-900/60 backdrop-blur-sm min-h-[280px]">
+          <div className="overflow-hidden border border-white/[0.06] bg-white/[0.02] min-h-[260px]">
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={current}
@@ -102,39 +92,26 @@ export default function Testimonials() {
                 initial="enter"
                 animate="center"
                 exit="exit"
-                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] as const }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 className="p-10 md:p-12"
               >
-                {/* Stars */}
-                <div className="mb-5 flex gap-1">
-                  {Array.from({ length: testimonials[current].stars }).map(
-                    (_, i) => (
-                      <Star
-                        key={i}
-                        className="h-5 w-5 fill-amber-400 text-amber-400"
-                      />
-                    )
-                  )}
-                </div>
-
                 {/* Quote */}
-                <p className="text-lg leading-relaxed text-zinc-200 md:text-xl">
+                <p className="text-lg font-extralight leading-relaxed text-white/70 md:text-xl">
                   &ldquo;{testimonials[current].quote}&rdquo;
                 </p>
 
                 {/* Attribution */}
-                <div className="mt-8 flex items-center justify-between border-t border-zinc-800 pt-6">
+                <div className="mt-8 flex items-center justify-between border-t border-white/[0.06] pt-6">
                   <div>
-                    <p className="font-semibold text-white">
+                    <p className="text-[14px] font-medium text-white/80">
                       {testimonials[current].name}
                     </p>
-                    <p className="text-sm text-zinc-500">
-                      {testimonials[current].role},{" "}
-                      {testimonials[current].dealership}
+                    <p className="text-[12px] text-white/30 mt-0.5 font-mono">
+                      {testimonials[current].role} &middot; {testimonials[current].dealership}
                     </p>
                   </div>
-                  <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5">
-                    <span className="text-sm font-mono font-semibold text-emerald-400">
+                  <div className="border border-emerald-500/20 bg-emerald-500/[0.05] px-3 py-1.5">
+                    <span className="font-mono text-[11px] text-emerald-400/70">
                       {testimonials[current].metric}
                     </span>
                   </div>
@@ -147,13 +124,12 @@ export default function Testimonials() {
           <div className="mt-6 flex items-center justify-center gap-4">
             <button
               onClick={() => paginate(-1)}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:text-white hover:border-zinc-600 transition-colors"
+              className="flex h-8 w-8 items-center justify-center border border-white/[0.06] bg-white/[0.02] text-white/30 hover:text-white/70 hover:border-white/[0.12] transition-colors"
               aria-label="Previous testimonial"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-4 w-4" />
             </button>
 
-            {/* Dots */}
             <div className="flex gap-2">
               {testimonials.map((_, i) => (
                 <button
@@ -162,10 +138,10 @@ export default function Testimonials() {
                     setDirection(i > current ? 1 : -1);
                     setCurrent(i);
                   }}
-                  className={`h-2 rounded-full transition-all ${
+                  className={`h-1 transition-all ${
                     i === current
-                      ? "w-8 bg-emerald-500"
-                      : "w-2 bg-zinc-700 hover:bg-zinc-600"
+                      ? "w-8 bg-emerald-500/60"
+                      : "w-4 bg-white/[0.08] hover:bg-white/[0.15]"
                   }`}
                   aria-label={`Go to testimonial ${i + 1}`}
                 />
@@ -174,10 +150,10 @@ export default function Testimonials() {
 
             <button
               onClick={() => paginate(1)}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:text-white hover:border-zinc-600 transition-colors"
+              className="flex h-8 w-8 items-center justify-center border border-white/[0.06] bg-white/[0.02] text-white/30 hover:text-white/70 hover:border-white/[0.12] transition-colors"
               aria-label="Next testimonial"
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>
