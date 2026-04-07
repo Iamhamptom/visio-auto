@@ -203,7 +203,7 @@ async function collectViaGoogleSearch(): Promise<CollectedSignal[]> {
         title: `YouTube (Google): ${result.title?.substring(0, 80)}`,
         description: result.snippet || '',
         data_source: 'youtube',
-        source_url: result.link || null,
+        source_url: result.url || null,
         signal_strength: intent === 'strong' ? 'strong' : 'medium',
         buying_probability: intent === 'strong' ? 65 : 40,
         area: location.area || null,

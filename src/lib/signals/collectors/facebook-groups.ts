@@ -117,22 +117,23 @@ export async function collectFacebookSignals(): Promise<CollectedSignal[]> {
 
         if (intent === 'weak') continue
 
-        const location = extractLocation(text)
+        const { area, city } = extractLocation(text)
+        const locationText = city || area || 'SA'
         const person = extractPersonName(text)
         const vehicle = detectVehicle(text)
         const budget = estimateBudget(text, vehicle)
 
         signals.push({
           signal_type: 'social_intent',
-          title: `Facebook: ${person || 'Unknown'} — ${vehicle || 'car'} intent in ${location || 'SA'}`,
+          title: `Facebook: ${person || 'Unknown'} — ${vehicle || 'car'} intent in ${locationText}`,
           description: result.snippet || text.substring(0, 200),
           person_name: person || null,
           data_source: 'facebook',
-          source_url: result.link || null,
+          source_url: result.url || null,
           signal_strength: intent === 'strong' ? 'strong' : 'medium',
           buying_probability: intent === 'strong' ? 72 : 48,
-          area: location || null,
-          city: location || null,
+          area: area,
+          city: city,
           province: null,
           vehicle_type_likely: vehicle,
           estimated_budget_min: budget.min,
