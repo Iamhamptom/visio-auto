@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { JessChatWidget } from "@/components/jess-chat-widget";
+import { JessVoiceWidget } from "@/components/jess-voice-widget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
         <JessChatWidget />
+        <JessVoiceWidget />
       </body>
     </html>
   );
