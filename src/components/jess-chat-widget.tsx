@@ -89,30 +89,44 @@ export function JessChatWidget() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Chat with Jess"
-          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-105 animate-pulse"
+          className="fixed bottom-6 right-6 z-[60] flex items-center gap-3 rounded-full bg-emerald-400 px-5 py-4 text-emerald-950 font-semibold text-sm shadow-2xl shadow-emerald-400/40 transition-all hover:scale-105 hover:shadow-emerald-400/60 ring-2 ring-emerald-300/40 ring-offset-2 ring-offset-background"
         >
-          <MessageCircle className="h-6 w-6" />
+          <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-emerald-950/90 text-emerald-300">
+            <MessageCircle className="h-5 w-5" />
+            <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-300 animate-ping" />
+            <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-300" />
+          </span>
+          <span className="hidden sm:flex flex-col items-start leading-tight">
+            <span className="text-[11px] uppercase tracking-wider opacity-70">Ask</span>
+            <span className="text-base font-bold">Jess</span>
+          </span>
         </button>
       )}
 
       {open && (
         <div
           className={cn(
-            'fixed z-50 flex flex-col border border-border bg-background/80 backdrop-blur-xl shadow-2xl',
-            'inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:h-[600px] sm:w-[380px] sm:rounded-2xl'
+            'fixed z-[60] flex flex-col border border-emerald-500/20 bg-background/95 backdrop-blur-xl shadow-2xl shadow-emerald-500/10',
+            'inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:h-[640px] sm:w-[400px] sm:rounded-2xl'
           )}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <div>
-              <div className="text-sm font-semibold">Jess</div>
-              <div className="text-xs text-muted-foreground">SA car expert</div>
+          <div className="flex items-center justify-between border-b border-emerald-500/20 bg-gradient-to-r from-emerald-500/10 to-transparent px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400 text-emerald-950 font-bold text-base">
+                J
+                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-background" />
+              </div>
+              <div>
+                <div className="text-sm font-bold">Jess</div>
+                <div className="text-[11px] text-emerald-400/80 font-mono uppercase tracking-wider">SA car expert · online</div>
+              </div>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Close chat"
-              className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>
