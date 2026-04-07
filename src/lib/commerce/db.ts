@@ -399,8 +399,10 @@ export async function getEntitlementsForEmail(
 ): Promise<CommerceEntitlement[]> {
   try {
     const supabase = await createClient();
+    // Query the view which computes `active` from revoked_at + expires_at
+    // (a generated column using now() is not allowed by Postgres)
     const { data } = await supabase
-      .from("va_commerce_entitlements")
+      .from("va_commerce_entitlements_active")
       .select("*")
       .eq("buyer_email", email.toLowerCase())
       .eq("active", true)

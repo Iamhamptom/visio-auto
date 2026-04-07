@@ -186,16 +186,23 @@ create table if not exists va_commerce_entitlements (
   granted_at timestamptz not null default now(),
   expires_at timestamptz,               -- null = no expiry (one-off purchases) or rolling subscription
   revoked_at timestamptz,
-  active boolean generated always as (revoked_at is null and (expires_at is null or expires_at > now())) stored,
 
   created_at timestamptz not null default now()
 );
+
+-- A view exposes the computed `active` flag (stored generated columns can't
+-- use volatile functions like now(), so we use a view instead).
+create or replace view va_commerce_entitlements_active as
+  select
+    *,
+    (revoked_at is null and (expires_at is null or expires_at > now())) as active
+  from va_commerce_entitlements;
 
 create unique index if not exists idx_commerce_ent_unique
   on va_commerce_entitlements(buyer_email, entitlement_key)
   where revoked_at is null;
 create index if not exists idx_commerce_ent_buyer_email on va_commerce_entitlements(buyer_email);
-create index if not exists idx_commerce_ent_active on va_commerce_entitlements(active) where active = true;
+create index if not exists idx_commerce_ent_not_revoked on va_commerce_entitlements(revoked_at) where revoked_at is null;
 
 -- ── RLS POLICIES (permissive default — tighten when auth lands) ──
 alter table va_commerce_orders enable row level security;
