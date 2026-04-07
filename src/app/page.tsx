@@ -1,50 +1,62 @@
-import Navbar from "@/components/landing/Navbar";
-import Hero from "@/components/landing/Hero";
-import TrustBar from "@/components/landing/TrustBar";
-import AgentPlatform from "@/components/landing/AgentPlatform";
-import VisioAutoSuite from "@/components/landing/VisioAutoSuite";
-import HowItWorks from "@/components/landing/HowItWorks";
-import SignalDepth from "@/components/landing/SignalDepth";
-import SignalUniverse from "@/components/landing/SignalUniverse";
-import VisioIntel from "@/components/landing/VisioIntel";
-import DealerIntelFeed from "@/components/landing/DealerIntelFeed";
-import StrategyAgent from "@/components/landing/StrategyAgent";
-import LuxuryConcierge from "@/components/landing/LuxuryConcierge";
-import CarMarquee from "@/components/landing/CarMarquee";
-import CarsCharts from "@/components/landing/CarsCharts";
-import SecurityCompliance from "@/components/landing/SecurityCompliance";
-import ForDealers from "@/components/landing/ForDealers";
-import SocialProof from "@/components/landing/SocialProof";
-import Pricing from "@/components/landing/Pricing";
-import PricingShop from "@/components/landing/PricingShop";
-import CTA from "@/components/landing/CTA";
-import Footer from "@/components/landing/Footer";
+import Navbar from "@/components/home/Navbar";
+import Hero from "@/components/home/Hero";
+import TrustBar from "@/components/home/TrustBar";
+import HowItWorks from "@/components/home/HowItWorks";
+import CoreOfferings from "@/components/home/CoreOfferings";
+import SuiteGrid from "@/components/home/SuiteGrid";
+import PricingTeaser from "@/components/home/PricingTeaser";
+import IntelligenceCTA from "@/components/home/IntelligenceCTA";
+import Numbers from "@/components/home/Numbers";
+import ResearchTeaser from "@/components/home/ResearchTeaser";
+import FinalCTA from "@/components/home/FinalCTA";
+import Footer from "@/components/home/Footer";
 import ClickPop from "@/components/landing/ClickPop";
 
-export default function LandingPage() {
+/**
+ * Visio Auto — the home page.
+ *
+ * World-class B2B SaaS landing structure. 11 sections (including nav + footer),
+ * single clear message, one CTA repeated three times, zero engineering jargon.
+ *
+ * The brand promise leads, not the agent persona. Jess is the chat widget
+ * in the layout, available on every page, but she is a feature — not the hero.
+ *
+ * Section order:
+ *   01  Navbar                  (sticky)
+ *   02  Hero                    — the brand promise + CTAs
+ *   03  TrustBar                — verified facts, no fake logos
+ *   04  HowItWorks              — 4-step flow (signal → qualify → match → deliver)
+ *   05  CoreOfferings           — the 3 things we sell (leads / intel / suite)
+ *   06  SuiteGrid               — 6 sibling products, clean
+ *   07  PricingTeaser           — 3 anchor tiers, full at /pricing
+ *   08  IntelligenceCTA         — OEM + bank audience branching
+ *   09  Numbers                 — by-the-numbers, verified only
+ *   10  ResearchTeaser          — 3 featured papers, full at /research
+ *   11  FinalCTA                — last conversion push
+ *   12  Footer                  — clean 4-column info architecture
+ *
+ * Deep content lives at:
+ *   /research        (papers + architecture + signal taxonomy)
+ *   /intelligence    (live Q1 2026 dashboard)
+ *   /concierge       (UHNW African luxury)
+ *   /about/jess      (persona page + voice demo)
+ *   /pricing         (full 18-SKU catalogue)
+ */
+export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#030f0a] cursor-xp">
+    <div className="min-h-screen bg-[#030f0a]">
       <ClickPop />
       <Navbar />
       <Hero />
       <TrustBar />
-      <AgentPlatform />
-      <VisioAutoSuite />
-      <SignalDepth />
-      <SignalUniverse />
-      <VisioIntel />
-      <DealerIntelFeed />
-      <StrategyAgent />
       <HowItWorks />
-      <ForDealers />
-      <LuxuryConcierge />
-      <CarMarquee />
-      <CarsCharts />
-      <SecurityCompliance />
-      <SocialProof />
-      <PricingShop />
-      <Pricing />
-      <CTA />
+      <CoreOfferings />
+      <SuiteGrid />
+      <PricingTeaser />
+      <IntelligenceCTA />
+      <Numbers />
+      <ResearchTeaser />
+      <FinalCTA />
       <Footer />
     </div>
   );

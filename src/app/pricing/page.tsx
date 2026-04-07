@@ -12,20 +12,20 @@ import {
   type CatalogItem,
 } from "@/lib/commerce/catalog";
 import { VisioLogoMark } from "@/components/landing/VisioLogo";
-import Navbar from "@/components/landing/Navbar";
+import Navbar from "@/components/home/Navbar";
 
 /**
- * Visio Auto Shop — full catalog page with checkout flow.
+ * Visio Auto Pricing — full catalog + checkout flow.
  *
  * Three states:
- *   1. Browse — see every SKU, filterable
- *   2. Configure — selected SKU + buyer details form
+ *   1. Browse — see every plan + add-on, filterable
+ *   2. Configure — selected plan + buyer details form
  *   3. Submitting — POST to /api/commerce/orders or /api/commerce/subscriptions
  *
- * Pre-selectable via URL: /shop?sku=bdc-pro
+ * Pre-selectable via URL: /pricing?sku=bdc-pro
  */
 
-function ShopContent() {
+function PricingContent() {
   const searchParams = useSearchParams();
   const initialSku = searchParams.get("sku");
   const cancelled = searchParams.get("cancelled");
@@ -148,19 +148,19 @@ function ShopContent() {
           <div className="flex items-center gap-4 mb-3">
             <VisioLogoMark size={32} />
             <span className="font-mono text-[11px] uppercase tracking-[0.3em] text-emerald-400/60">
-              The Visio Auto Shop
+              Pricing
             </span>
           </div>
           <h1 className="text-4xl md:text-5xl font-extralight tracking-tight text-white max-w-3xl">
-            Subscribe, order, or quote.
+            Simple pricing.
+            <br />
+            Pay for results.
           </h1>
           <p className="mt-4 text-[15px] text-white/50 max-w-2xl">
-            Every SKU in the Visio Auto Suite. Pay via Yoco. Entitlements activate
-            the moment payment lands. Need help choosing?{" "}
-            <Link href="/#chat" className="text-emerald-400/80 hover:text-emerald-400 underline underline-offset-4">
-              Open Jess in chat
-            </Link>{" "}
-            and she&apos;ll walk you through it.
+            Plans for dealerships, add-ons for power users, and data tiers for OEMs and banks.
+            Start free, upgrade as you grow. Need help choosing?{" "}
+            <span className="text-emerald-400/80">Ask Jess</span> in the chat widget and she
+            will walk you through it in plain English.
           </p>
 
           {cancelled && (
@@ -411,7 +411,7 @@ function CartPanel(props: {
   );
 }
 
-export default function ShopPage() {
+export default function PricingPage() {
   return (
     <Suspense
       fallback={
@@ -420,7 +420,7 @@ export default function ShopPage() {
         </div>
       }
     >
-      <ShopContent />
+      <PricingContent />
     </Suspense>
   );
 }
