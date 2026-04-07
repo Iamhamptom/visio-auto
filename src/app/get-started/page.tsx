@@ -36,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import JessOnboardingPanel from "@/components/get-started/JessOnboardingPanel";
 
 // ---------------------------------------------------------------------------
 // Tier definitions
@@ -400,8 +401,19 @@ function GetStartedContent() {
                 Tell us about your dealership
               </h1>
               <p className="mt-2 text-zinc-400">
-                We use this to match the right leads to your inventory and area.
+                Let Jess fill this out for you, or skip and complete the form yourself.
               </p>
+            </div>
+
+            <div className="mx-auto max-w-lg">
+              <JessOnboardingPanel
+                currentForm={form}
+                onUpdateForm={updateForm}
+                onSuggestTier={(tier) => {
+                  // Only override if user hasn't already chosen something
+                  if (!preselectedTier) setSelectedTier(tier);
+                }}
+              />
             </div>
 
             <Card className="mx-auto max-w-lg border-zinc-800/50 bg-zinc-900/50">
