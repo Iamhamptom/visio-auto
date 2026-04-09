@@ -2,30 +2,22 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 
 // =============================================================================
-// POST /api/outreach/send — Send outreach emails (placeholder — logs for now)
-// Tracks: sent_at, opened_at, replied_at
+// POST /api/outreach/send — Send outreach emails via Resend
+// Supports: dealer outreach, lead outreach, signal-based outreach
 // =============================================================================
 
 const sendSchema = z.object({
-  dealer_id: z.string().min(1, "Dealer ID is required"),
-  template: z.enum(["cold_intro", "follow_up", "roi_case_study"]),
-  custom_message: z.string().nullable().optional(),
+  to: z.string().email("Valid email required"),
+  subject: z.string().min(1, "Subject is required"),
+  html: z.string().min(1, "HTML body is required"),
+  from_name: z.string().default("Visio Auto"),
+  from_email: z.string().email().default("david@visiocorp.co"),
+  reply_to: z.string().email().default("david@visiocorp.co"),
+  dealer_id: z.string().optional(),
+  lead_id: z.string().optional(),
+  signal_id: z.string().optional(),
+  template: z.string().optional(),
 })
-
-// In-memory outreach log (replaced by Supabase in production)
-type OutreachRecord = {
-  id: string
-  dealer_id: string
-  template: string
-  custom_message: string | null
-  sent_at: string
-  opened_at: string | null
-  replied_at: string | null
-  status: "sent" | "delivered" | "opened" | "replied" | "bounced"
-  channel: "email"
-}
-
-const outreachLog: OutreachRecord[] = []
 
 // ---------------------------------------------------------------------------
 // POST /api/outreach/send
@@ -47,39 +39,71 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { dealer_id, template, custom_message } = parsed.data
+  const { to, subject, html, from_name, from_email, reply_to, dealer_id, lead_id, signal_id, template } = parsed.data
 
-  // TODO: Actually send via Resend/SendGrid/Postmark
-  // For now, we log the outreach and return a tracking record
-
-  const record: OutreachRecord = {
-    id: `out-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-    dealer_id,
-    template,
-    custom_message: custom_message ?? null,
-    sent_at: new Date().toISOString(),
-    opened_at: null,
-    replied_at: null,
-    status: "sent",
-    channel: "email",
+  const resendKey = process.env.RESEND_API_KEY
+  if (!resendKey) {
+    return NextResponse.json({ error: "RESEND_API_KEY not configured" }, { status: 500 })
   }
 
-  outreachLog.push(record)
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${resendKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: `${from_name} <${from_email}>`,
+        to: [to],
+        reply_to,
+        subject,
+        html,
+      }),
+    })
 
-  // TODO: Insert into Supabase
-  // const { error } = await supabase.from('outreach_log').insert(record)
+    if (!res.ok) {
+      const err = await res.text()
+      console.error(`[OUTREACH] Resend error: ${err}`)
+      return NextResponse.json({ error: "Failed to send email", details: err }, { status: res.status })
+    }
 
-  console.log(
-    `[OUTREACH] Sent ${template} to dealer ${dealer_id} at ${record.sent_at}`,
-    custom_message ? `| Custom: ${custom_message.slice(0, 80)}...` : ""
-  )
+    const resendData = await res.json()
 
-  return NextResponse.json({
-    success: true,
-    outreach: record,
-    message: `Outreach email (${template.replace(/_/g, " ")}) queued for dealer ${dealer_id}. Tracking ID: ${record.id}`,
-    note: "Email sending is in placeholder mode. Connect Resend/SendGrid to go live.",
-  })
+    // Log to Supabase if available
+    try {
+      const { createServiceClient } = await import("@/lib/supabase/service")
+      const supabase = createServiceClient()
+      await supabase.from("va_outreach_log").insert({
+        resend_id: resendData.id,
+        to_email: to,
+        subject,
+        from_email,
+        dealer_id: dealer_id ?? null,
+        lead_id: lead_id ?? null,
+        signal_id: signal_id ?? null,
+        template: template ?? null,
+        status: "sent",
+      })
+    } catch {
+      // Table may not exist yet — that's fine, email still sent
+    }
+
+    console.log(`[OUTREACH] Sent to ${to} | subject: ${subject.slice(0, 50)} | resend_id: ${resendData.id}`)
+
+    return NextResponse.json({
+      success: true,
+      resend_id: resendData.id,
+      to,
+      subject,
+      dealer_id,
+      lead_id,
+      signal_id,
+    })
+  } catch (err) {
+    console.error("[OUTREACH] Send failed:", err)
+    return NextResponse.json({ error: "Email send failed" }, { status: 500 })
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -87,33 +111,20 @@ export async function POST(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl
+  const searchParams = request.nextUrl.searchParams
   const dealerId = searchParams.get("dealer_id")
 
-  let records = [...outreachLog]
+  try {
+    const { createServiceClient } = await import("@/lib/supabase/service")
+    const supabase = createServiceClient()
 
-  if (dealerId) {
-    records = records.filter((r) => r.dealer_id === dealerId)
+    let query = supabase.from("va_outreach_log").select("*", { count: "exact" }).order("created_at", { ascending: false }).limit(100)
+    if (dealerId) query = query.eq("dealer_id", dealerId)
+
+    const { data, count } = await query
+
+    return NextResponse.json({ records: data ?? [], total: count ?? 0 })
+  } catch {
+    return NextResponse.json({ records: [], total: 0, note: "Outreach log table not yet created" })
   }
-
-  // Sort newest first
-  records.sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())
-
-  // Summary
-  const total = records.length
-  const sent = records.filter((r) => r.status === "sent").length
-  const opened = records.filter((r) => r.status === "opened").length
-  const replied = records.filter((r) => r.status === "replied").length
-
-  return NextResponse.json({
-    records,
-    total,
-    summary: {
-      sent,
-      opened,
-      replied,
-      open_rate: total > 0 ? Math.round((opened / total) * 100) : 0,
-      reply_rate: total > 0 ? Math.round((replied / total) * 100) : 0,
-    },
-  })
 }
