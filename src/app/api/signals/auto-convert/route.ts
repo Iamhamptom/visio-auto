@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { autoAssignLead } from '@/lib/leads/auto-assign'
 import { notifyDealer } from '@/lib/leads/auto-notify'
+import { NOTIFICATION_STATUS, checkNotificationGate } from '@/lib/leads/notification-gate'
 
 // ---------------------------------------------------------------------------
 // Cron: Auto Signal-to-Lead Conversion
@@ -43,6 +44,7 @@ export async function GET(request: NextRequest) {
     let converted = 0
     let assigned = 0
     let notified = 0
+    let pending_approval = 0
     let errors = 0
 
     for (const signal of signals) {
@@ -121,7 +123,23 @@ export async function GET(request: NextRequest) {
         if (assignment) {
           assigned++
 
-          // Notify the assigned dealer
+          // Approval gate — honor Chairman's "never auto-send without approval" rule.
+          // If gate blocks, persist pending_approval for dashboard review.
+          const gate = checkNotificationGate({
+            kind: 'dealer_new_lead',
+            score_tier: lead.score_tier,
+          })
+
+          if (!gate.allowed) {
+            pending_approval++
+            await supabase
+              .from('va_leads')
+              .update({ notification_status: NOTIFICATION_STATUS.PENDING })
+              .eq('id', lead.id)
+            console.log(`[AutoConvert] Lead ${lead.id} queued for manual approval: ${gate.reason}`)
+            continue
+          }
+
           const { data: dealer } = await supabase
             .from('va_dealers')
             .select('id, name, whatsapp_number, email')
@@ -131,8 +149,18 @@ export async function GET(request: NextRequest) {
           if (dealer) {
             try {
               const notifyResult = await notifyDealer(dealer, lead)
-              if (notifyResult.whatsapp_sent || notifyResult.email_prepared) {
+              if (notifyResult.whatsapp_sent || notifyResult.email_sent) {
                 notified++
+                await supabase
+                  .from('va_leads')
+                  .update({ notification_status: NOTIFICATION_STATUS.SENT })
+                  .eq('id', lead.id)
+              } else if (notifyResult.gated) {
+                pending_approval++
+                await supabase
+                  .from('va_leads')
+                  .update({ notification_status: NOTIFICATION_STATUS.PENDING })
+                  .eq('id', lead.id)
               }
             } catch {
               // Notification failure is non-fatal
@@ -151,7 +179,7 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(
-      `[AutoConvert] Completed — ${converted} converted, ${assigned} assigned, ${notified} notified, ${errors} errors`
+      `[AutoConvert] Completed — ${converted} converted, ${assigned} assigned, ${notified} notified, ${pending_approval} pending approval, ${errors} errors`
     )
 
     return NextResponse.json({
@@ -160,6 +188,7 @@ export async function GET(request: NextRequest) {
       converted,
       assigned,
       notified,
+      pending_approval,
       errors,
     })
   } catch (err) {

@@ -47,11 +47,13 @@ export async function GET(
     condition: v.condition || "used",
   })) ?? [];
 
-  if (cars.length === 0) {
+  const carsAreSample = cars.length === 0;
+  if (carsAreSample) {
     cars = generateMockCars(slug, dealerName);
   }
 
-  // Generate fake leads for the blurred preview
+  // Illustrative preview of signals + leads. Always labeled as sample so the
+  // demo funnel never passes off fake names as real prospects.
   const signalsCount = Math.floor(Math.random() * 30) + 25;
   const leads = Array.from({ length: 8 }, (_, i) => ({
     name: SA_NAMES[i % SA_NAMES.length],
@@ -59,6 +61,7 @@ export async function GET(
     signal: SIGNALS[i % SIGNALS.length],
     score: Math.floor(Math.random() * 25) + 70,
     tier: (Math.random() > 0.4 ? "hot" : "warm") as "hot" | "warm",
+    is_sample: true,
   }));
 
   // Try to get contact name from workspace leads
@@ -81,8 +84,11 @@ export async function GET(
     contact_name: contactName,
     area,
     cars,
+    cars_source: carsAreSample ? "sample" : "real_inventory",
     signals_count: signalsCount,
     leads,
+    leads_source: "sample_preview",
+    preview_disclaimer: "Signal and lead counts on this demo page are illustrative. Your live feed will show only real, consented buyers matched to your inventory.",
   });
 }
 

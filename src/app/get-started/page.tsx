@@ -202,6 +202,12 @@ function GetStartedContent() {
       const newDealerId = data.id || data.dealer?.id || "";
       setDealerId(newDealerId);
 
+      // Remember this dealer locally so the dashboard can look up entitlements.
+      if (typeof window !== "undefined" && form.email) {
+        localStorage.setItem("visio_auto_dealer_email", form.email.toLowerCase());
+        if (newDealerId) localStorage.setItem("visio_auto_dealer_id", newDealerId);
+      }
+
       if (selectedTier === "free") {
         // Skip payment for free tier
         setStep(4);

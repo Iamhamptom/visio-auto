@@ -336,9 +336,28 @@ function buildLeads(): Lead[] {
 
 export async function POST() {
   const leads = buildLeads()
+  let persisted = 0
+  let db_error: string | null = null
 
-  // TODO: Insert into Supabase
-  // const { error } = await supabase.from('va_leads').upsert(leads, { onConflict: 'id' })
+  try {
+    const { createServiceClient } = await import('@/lib/supabase/service')
+    const supabase = createServiceClient()
+
+    const batchSize = 10
+    for (let i = 0; i < leads.length; i += batchSize) {
+      const batch = leads.slice(i, i + batchSize)
+      const { error, count } = await supabase
+        .from('va_leads')
+        .upsert(batch, { onConflict: 'id', count: 'exact' })
+      if (error) {
+        db_error = error.message
+        break
+      }
+      persisted += count ?? batch.length
+    }
+  } catch (err) {
+    db_error = err instanceof Error ? err.message : String(err)
+  }
 
   // Summary stats
   const byStatus = leads.reduce<Record<string, number>>((acc, l) => {
@@ -370,8 +389,10 @@ export async function POST() {
   const totalPipelineValue = leads.reduce((sum, l) => sum + (l.budget_max ?? 0), 0)
 
   return NextResponse.json({
-    success: true,
+    success: db_error === null,
     count: leads.length,
+    persisted,
+    db_error,
     avg_ai_score: avgScore,
     total_pipeline_value: totalPipelineValue,
     summary: {
@@ -385,12 +406,14 @@ export async function POST() {
       name: l.name,
       brand: l.preferred_brand,
       model: l.preferred_model,
-      budget: `R${l.budget_min?.toLocaleString("en-ZA")} - R${l.budget_max?.toLocaleString("en-ZA")}`,
+      budget: `R${l.budget_min?.toLocaleString('en-ZA')} - R${l.budget_max?.toLocaleString('en-ZA')}`,
       ai_score: l.ai_score,
       tier: l.score_tier,
       timeline: l.timeline,
       status: l.status,
     })),
-    message: `Seeded ${leads.length} demo leads. Average AI score: ${avgScore}. Pipeline value: R${totalPipelineValue.toLocaleString("en-ZA")}.`,
+    message: db_error
+      ? `Built ${leads.length} leads but insert failed: ${db_error}`
+      : `Seeded ${persisted}/${leads.length} demo leads. Avg AI score: ${avgScore}. Pipeline: R${totalPipelineValue.toLocaleString('en-ZA')}.`,
   })
 }

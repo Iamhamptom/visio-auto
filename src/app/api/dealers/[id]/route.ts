@@ -147,42 +147,125 @@ const updateDealerSchema = z.object({
 // GET /api/dealers/[id]
 // ---------------------------------------------------------------------------
 
+async function computeStatsFromLeads(
+  supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>,
+  dealerId: string,
+  period: string
+) {
+  const { count: leadsDelivered } = await supabase
+    .from('va_leads')
+    .select('*', { count: 'exact', head: true })
+    .eq('assigned_dealer_id', dealerId)
+
+  const { count: leadsContacted } = await supabase
+    .from('va_leads')
+    .select('*', { count: 'exact', head: true })
+    .eq('assigned_dealer_id', dealerId)
+    .not('contacted_at', 'is', null)
+
+  const { count: testDrivesBooked } = await supabase
+    .from('va_leads')
+    .select('*', { count: 'exact', head: true })
+    .eq('assigned_dealer_id', dealerId)
+    .not('test_drive_at', 'is', null)
+
+  const { count: salesClosed } = await supabase
+    .from('va_leads')
+    .select('*', { count: 'exact', head: true })
+    .eq('assigned_dealer_id', dealerId)
+    .eq('status', 'sold')
+
+  const { data: soldLeads } = await supabase
+    .from('va_leads')
+    .select('sale_amount, ai_score')
+    .eq('assigned_dealer_id', dealerId)
+    .eq('status', 'sold')
+
+  const revenue = (soldLeads ?? []).reduce((s, l) => s + (l.sale_amount ?? 0), 0)
+  const { data: scored } = await supabase
+    .from('va_leads')
+    .select('ai_score')
+    .eq('assigned_dealer_id', dealerId)
+  const avgScore = scored && scored.length
+    ? Math.round(scored.reduce((s, l) => s + (l.ai_score ?? 0), 0) / scored.length)
+    : null
+
+  return {
+    period,
+    leads_delivered: leadsDelivered ?? 0,
+    leads_contacted: leadsContacted ?? 0,
+    test_drives_booked: testDrivesBooked ?? 0,
+    test_drives_done: testDrivesBooked ?? 0,
+    sales_closed: salesClosed ?? 0,
+    revenue_this_month: revenue,
+    avg_ai_score: avgScore,
+  }
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
+  const period = new Date().toISOString().slice(0, 7)
 
-  // TODO: Replace with Supabase query
-  const dealer = MOCK_DEALERS[id]
-  if (!dealer) {
-    return NextResponse.json(
-      { error: "Dealer not found", id },
-      { status: 404 }
-    )
+  try {
+    const { createClient } = await import('@/lib/supabase/server')
+    const supabase = await createClient()
+    const { data: dealer, error } = await supabase
+      .from('va_dealers')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (!error && dealer) {
+      const stats = await computeStatsFromLeads(supabase, id, period)
+      const leadCount = stats.leads_delivered
+      const salesClosed = stats.sales_closed
+      const conversionRate = leadCount > 0
+        ? Math.round((salesClosed / leadCount) * 1000) / 10
+        : 0
+      const costPerLead = dealer.leads_quota > 0
+        ? Math.round(dealer.monthly_fee / dealer.leads_quota)
+        : 0
+      const roi = dealer.monthly_fee > 0
+        ? Math.round((stats.revenue_this_month / dealer.monthly_fee) * 10) / 10
+        : 0
+
+      return NextResponse.json({
+        dealer,
+        stats: {
+          ...stats,
+          conversion_rate: conversionRate,
+          avg_response_time_seconds: null,
+          best_source: null,
+          best_brand: null,
+          cost_per_lead: costPerLead,
+          roi_multiple: roi,
+        },
+      })
+    }
+  } catch {
+    // fall through to mock fallback
   }
 
+  // Fallback: mock data labeled as sample
+  const dealer = MOCK_DEALERS[id]
+  if (!dealer) {
+    return NextResponse.json({ error: 'Dealer not found', id }, { status: 404 })
+  }
   const analytics = MOCK_ANALYTICS[id]
-
-  // Compute derived stats
   const leadCount = analytics?.leads_delivered ?? 0
   const salesClosed = analytics?.sales_closed ?? 0
-  const conversionRate = leadCount > 0
-    ? Math.round((salesClosed / leadCount) * 1000) / 10
-    : 0
+  const conversionRate = leadCount > 0 ? Math.round((salesClosed / leadCount) * 1000) / 10 : 0
   const revenueThisMonth = analytics?.total_revenue ?? 0
-  const avgResponseTime = analytics?.avg_response_time_seconds ?? null
-  const costPerLead = dealer.leads_quota > 0
-    ? Math.round(dealer.monthly_fee / dealer.leads_quota)
-    : 0
-  const roi = dealer.monthly_fee > 0
-    ? Math.round((revenueThisMonth / dealer.monthly_fee) * 10) / 10
-    : 0
+  const costPerLead = dealer.leads_quota > 0 ? Math.round(dealer.monthly_fee / dealer.leads_quota) : 0
+  const roi = dealer.monthly_fee > 0 ? Math.round((revenueThisMonth / dealer.monthly_fee) * 10) / 10 : 0
 
   return NextResponse.json({
     dealer,
     stats: {
-      period: "2026-03",
+      period: '2026-03',
       leads_delivered: leadCount,
       leads_contacted: analytics?.leads_contacted ?? 0,
       test_drives_booked: analytics?.test_drives_booked ?? 0,
@@ -190,13 +273,14 @@ export async function GET(
       sales_closed: salesClosed,
       conversion_rate: conversionRate,
       revenue_this_month: revenueThisMonth,
-      avg_response_time_seconds: avgResponseTime,
+      avg_response_time_seconds: analytics?.avg_response_time_seconds ?? null,
       avg_ai_score: analytics?.ai_score_avg ?? null,
       best_source: analytics?.best_source ?? null,
       best_brand: analytics?.best_brand ?? null,
       cost_per_lead: costPerLead,
       roi_multiple: roi,
     },
+    source: 'fallback_sample',
   })
 }
 
@@ -217,46 +301,57 @@ export async function PATCH(
 ) {
   const { id } = await params
 
-  const dealer = MOCK_DEALERS[id]
-  if (!dealer) {
-    return NextResponse.json(
-      { error: "Dealer not found", id },
-      { status: 404 }
-    )
-  }
-
   let body: unknown
   try {
     body = await request.json()
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
   const parsed = updateDealerSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Validation failed", details: parsed.error.issues },
+      { error: 'Validation failed', details: parsed.error.issues },
       { status: 400 }
     )
   }
 
-  const updates = parsed.data
-
-  // Apply updates
-  const updated: Dealer = { ...dealer, ...updates }
+  const updates: Record<string, unknown> = { ...parsed.data }
 
   // Recalculate pricing if tier changed
-  if (updates.tier && updates.tier !== dealer.tier) {
-    const pricing = TIER_PRICING[updates.tier]
-    updated.monthly_fee = pricing.fee
-    updated.leads_quota = pricing.quota
+  if (parsed.data.tier) {
+    const pricing = TIER_PRICING[parsed.data.tier]
+    if (pricing) {
+      updates.monthly_fee = pricing.fee
+      updates.leads_quota = pricing.quota
+    }
   }
 
-  // TODO: Update in Supabase
-  // const { data, error } = await supabase.from('va_dealers').update(updated).eq('id', id).select().single()
+  try {
+    const { createClient } = await import('@/lib/supabase/server')
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('va_dealers')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
 
-  return NextResponse.json({
-    dealer: updated,
-    message: `Dealer ${updated.name} updated successfully.`,
-  })
+    if (!error && data) {
+      return NextResponse.json({
+        dealer: data,
+        message: `Dealer ${data.name} updated successfully.`,
+      })
+    }
+    if (error?.code === 'PGRST116') {
+      return NextResponse.json({ error: 'Dealer not found', id }, { status: 404 })
+    }
+  } catch {
+    // fall through
+  }
+
+  return NextResponse.json(
+    { error: 'Database unavailable — update not persisted' },
+    { status: 503 }
+  )
 }

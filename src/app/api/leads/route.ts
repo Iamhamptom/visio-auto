@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
       if (!error && inserted) {
         // Auto-assign to best matching dealer
         let assignment: { dealer_id: string; dealer_name: string; reason: string } | null = null
-        let notification: { whatsapp_sent: boolean; email_prepared: boolean } | null = null
+        let notification: { whatsapp_sent: boolean; email_sent: boolean; gated: boolean; gate_reason?: string } | null = null
 
         try {
           assignment = await autoAssignLead({

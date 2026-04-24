@@ -29,371 +29,6 @@ import {
 } from "@/components/ui/table";
 import type { Lead } from "@/lib/types";
 
-// --- 20 Realistic SA Mock Leads ---
-
-const mockLeads: Partial<Lead>[] = [
-  {
-    id: "l1",
-    name: "Thabo Molefe",
-    phone: "+27 82 345 6789",
-    area: "Sandton",
-    city: "Johannesburg",
-    budget_min: 500000,
-    budget_max: 650000,
-    preferred_brand: "BMW",
-    preferred_type: "sedan",
-    timeline: "this_week",
-    finance_status: "pre_approved",
-    ai_score: 92,
-    score_tier: "hot",
-    source: "LinkedIn Signal",
-    status: "qualified",
-    created_at: "2026-03-29",
-  },
-  {
-    id: "l2",
-    name: "Naledi Khumalo",
-    phone: "+27 71 234 5678",
-    area: "Bryanston",
-    city: "Johannesburg",
-    budget_min: 350000,
-    budget_max: 480000,
-    preferred_brand: "VW",
-    preferred_type: "suv",
-    timeline: "this_month",
-    finance_status: "pre_approved",
-    ai_score: 87,
-    score_tier: "hot",
-    source: "Facebook Intent",
-    status: "test_drive_booked",
-    created_at: "2026-03-28",
-  },
-  {
-    id: "l3",
-    name: "Sipho Nkosi",
-    phone: "+27 83 456 7890",
-    area: "Menlyn",
-    city: "Pretoria",
-    budget_min: 250000,
-    budget_max: 350000,
-    preferred_brand: "Toyota",
-    preferred_type: "bakkie",
-    timeline: "this_month",
-    finance_status: "needs_finance",
-    ai_score: 78,
-    score_tier: "warm",
-    source: "CIPC Registry",
-    status: "contacted",
-    created_at: "2026-03-28",
-  },
-  {
-    id: "l4",
-    name: "Lerato Dlamini",
-    phone: "+27 76 567 8901",
-    area: "Sandton",
-    city: "Johannesburg",
-    budget_min: 700000,
-    budget_max: 920000,
-    preferred_brand: "Mercedes",
-    preferred_type: "suv",
-    timeline: "this_week",
-    finance_status: "cash",
-    ai_score: 94,
-    score_tier: "hot",
-    source: "Referral",
-    status: "negotiating",
-    created_at: "2026-03-27",
-  },
-  {
-    id: "l5",
-    name: "Pieter van Wyk",
-    phone: "+27 82 678 9012",
-    area: "Centurion",
-    city: "Pretoria",
-    budget_min: 200000,
-    budget_max: 280000,
-    preferred_brand: "Haval",
-    preferred_type: "suv",
-    timeline: "three_months",
-    finance_status: "needs_finance",
-    ai_score: 65,
-    score_tier: "warm",
-    source: "Property Signal",
-    status: "new",
-    created_at: "2026-03-27",
-  },
-  {
-    id: "l6",
-    name: "Zanele Mthembu",
-    phone: "+27 73 789 0123",
-    area: "Umhlanga",
-    city: "Durban",
-    budget_min: 350000,
-    budget_max: 450000,
-    preferred_brand: "Toyota",
-    preferred_type: "sedan",
-    timeline: "this_month",
-    finance_status: "pre_approved",
-    ai_score: 71,
-    score_tier: "warm",
-    source: "TikTok Intent",
-    status: "contacted",
-    created_at: "2026-03-26",
-  },
-  {
-    id: "l7",
-    name: "Kabelo Modise",
-    phone: "+27 61 890 1234",
-    area: "Midrand",
-    city: "Johannesburg",
-    budget_min: 150000,
-    budget_max: 200000,
-    preferred_brand: "VW",
-    preferred_type: "hatch",
-    timeline: "just_browsing",
-    finance_status: "unknown",
-    ai_score: 55,
-    score_tier: "cold",
-    source: "Facebook Intent",
-    status: "new",
-    created_at: "2026-03-26",
-  },
-  {
-    id: "l8",
-    name: "Ayanda Ndaba",
-    phone: "+27 84 901 2345",
-    area: "Rosebank",
-    city: "Johannesburg",
-    budget_min: 400000,
-    budget_max: 550000,
-    preferred_brand: "BMW",
-    preferred_type: "sedan",
-    timeline: "this_week",
-    finance_status: "pre_approved",
-    ai_score: 83,
-    score_tier: "hot",
-    source: "LinkedIn Signal",
-    status: "qualified",
-    created_at: "2026-03-26",
-  },
-  {
-    id: "l9",
-    name: "Francois du Plessis",
-    phone: "+27 82 012 3456",
-    area: "Waterkloof",
-    city: "Pretoria",
-    budget_min: 300000,
-    budget_max: 380000,
-    preferred_brand: "Toyota",
-    preferred_type: "bakkie",
-    timeline: "this_month",
-    finance_status: "needs_finance",
-    ai_score: 69,
-    score_tier: "warm",
-    source: "Job Portal",
-    status: "contacted",
-    created_at: "2026-03-25",
-  },
-  {
-    id: "l10",
-    name: "Nomsa Sithole",
-    phone: "+27 72 123 4567",
-    area: "Fourways",
-    city: "Johannesburg",
-    budget_min: 100000,
-    budget_max: 150000,
-    preferred_brand: "Suzuki",
-    preferred_type: "hatch",
-    timeline: "three_months",
-    finance_status: "unknown",
-    ai_score: 45,
-    score_tier: "cold",
-    source: "Facebook Intent",
-    status: "new",
-    created_at: "2026-03-25",
-  },
-  {
-    id: "l11",
-    name: "Bongani Zulu",
-    phone: "+27 79 234 5670",
-    area: "Sandton",
-    city: "Johannesburg",
-    budget_min: 600000,
-    budget_max: 800000,
-    preferred_brand: "Mercedes",
-    preferred_type: "sedan",
-    timeline: "this_week",
-    finance_status: "cash",
-    ai_score: 91,
-    score_tier: "hot",
-    source: "CIPC Registry",
-    status: "qualified",
-    created_at: "2026-03-24",
-  },
-  {
-    id: "l12",
-    name: "Anele Mkhize",
-    phone: "+27 63 345 6781",
-    area: "Rivonia",
-    city: "Johannesburg",
-    budget_min: 250000,
-    budget_max: 320000,
-    preferred_brand: "Hyundai",
-    preferred_type: "suv",
-    timeline: "this_month",
-    finance_status: "pre_approved",
-    ai_score: 74,
-    score_tier: "warm",
-    source: "Property Signal",
-    status: "contacted",
-    created_at: "2026-03-24",
-  },
-  {
-    id: "l13",
-    name: "Refilwe Phalane",
-    phone: "+27 81 456 7892",
-    area: "Bedfordview",
-    city: "Johannesburg",
-    budget_min: 450000,
-    budget_max: 600000,
-    preferred_brand: "Audi",
-    preferred_type: "sedan",
-    timeline: "this_month",
-    finance_status: "pre_approved",
-    ai_score: 80,
-    score_tier: "hot",
-    source: "LinkedIn Signal",
-    status: "test_drive_booked",
-    created_at: "2026-03-23",
-  },
-  {
-    id: "l14",
-    name: "Tshepo Mahlangu",
-    phone: "+27 72 567 8903",
-    area: "Centurion",
-    city: "Pretoria",
-    budget_min: 180000,
-    budget_max: 250000,
-    preferred_brand: "Renault",
-    preferred_type: "hatch",
-    timeline: "three_months",
-    finance_status: "needs_finance",
-    ai_score: 52,
-    score_tier: "cold",
-    source: "TikTok Intent",
-    status: "new",
-    created_at: "2026-03-23",
-  },
-  {
-    id: "l15",
-    name: "Palesa Mokoena",
-    phone: "+27 84 678 9014",
-    area: "Morningside",
-    city: "Johannesburg",
-    budget_min: 500000,
-    budget_max: 700000,
-    preferred_brand: "BMW",
-    preferred_type: "suv",
-    timeline: "this_week",
-    finance_status: "pre_approved",
-    ai_score: 88,
-    score_tier: "hot",
-    source: "Referral",
-    status: "test_drive_booked",
-    created_at: "2026-03-22",
-  },
-  {
-    id: "l16",
-    name: "Johan Botha",
-    phone: "+27 83 789 0125",
-    area: "Stellenbosch",
-    city: "Cape Town",
-    budget_min: 400000,
-    budget_max: 520000,
-    preferred_brand: "Ford",
-    preferred_type: "bakkie",
-    timeline: "this_month",
-    finance_status: "pre_approved",
-    ai_score: 76,
-    score_tier: "warm",
-    source: "Job Portal",
-    status: "contacted",
-    created_at: "2026-03-22",
-  },
-  {
-    id: "l17",
-    name: "Lindiwe Ngcobo",
-    phone: "+27 71 890 1236",
-    area: "Ballito",
-    city: "Durban",
-    budget_min: 300000,
-    budget_max: 400000,
-    preferred_brand: "Toyota",
-    preferred_type: "suv",
-    timeline: "this_month",
-    finance_status: "needs_finance",
-    ai_score: 67,
-    score_tier: "warm",
-    source: "Facebook Intent",
-    status: "new",
-    created_at: "2026-03-21",
-  },
-  {
-    id: "l18",
-    name: "Mandla Shabalala",
-    phone: "+27 76 901 2347",
-    area: "Greenstone",
-    city: "Johannesburg",
-    budget_min: 550000,
-    budget_max: 750000,
-    preferred_brand: "Mercedes",
-    preferred_type: "sedan",
-    timeline: "this_week",
-    finance_status: "cash",
-    ai_score: 90,
-    score_tier: "hot",
-    source: "CIPC Registry",
-    status: "negotiating",
-    created_at: "2026-03-21",
-  },
-  {
-    id: "l19",
-    name: "Lebo Matlala",
-    phone: "+27 62 012 3458",
-    area: "Menlyn",
-    city: "Pretoria",
-    budget_min: 120000,
-    budget_max: 180000,
-    preferred_brand: "VW",
-    preferred_type: "hatch",
-    timeline: "just_browsing",
-    finance_status: "unknown",
-    ai_score: 41,
-    score_tier: "cold",
-    source: "TikTok Intent",
-    status: "new",
-    created_at: "2026-03-20",
-  },
-  {
-    id: "l20",
-    name: "Precious Mabaso",
-    phone: "+27 79 123 4569",
-    area: "Sandton",
-    city: "Johannesburg",
-    budget_min: 450000,
-    budget_max: 580000,
-    preferred_brand: "Audi",
-    preferred_type: "suv",
-    timeline: "this_month",
-    finance_status: "pre_approved",
-    ai_score: 82,
-    score_tier: "hot",
-    source: "LinkedIn Signal",
-    status: "qualified",
-    created_at: "2026-03-20",
-  },
-];
-
 function scoreBadge(tier: string, score: number) {
   const styles: Record<string, string> = {
     hot: "bg-red-500/10 text-red-400 ring-red-500/20",
@@ -467,8 +102,9 @@ function formatTimeline(tl: string) {
 }
 
 export default function LeadsPage() {
-  const [allLeads, setAllLeads] = useState<Partial<Lead>[]>(mockLeads);
+  const [allLeads, setAllLeads] = useState<Partial<Lead>[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -478,13 +114,20 @@ export default function LeadsPage() {
     if (statusFilter !== "all") params.set("status", statusFilter);
     if (tierFilter !== "all") params.set("score_tier", tierFilter);
     const url = `/api/leads${params.toString() ? `?${params}` : ""}`;
+    setLoading(true);
+    setError(null);
     fetch(url)
-      .then((r) => r.json())
-      .then((json) => {
-        const rows = json.data ?? json.leads ?? [];
-        if (rows.length > 0) setAllLeads(rows);
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`Lead fetch failed (${r.status})`);
+        return r.json();
       })
-      .catch(() => {/* keep mock data */})
+      .then((json) => {
+        setAllLeads(json.data ?? json.leads ?? []);
+      })
+      .catch((err: Error) => {
+        setError(err.message);
+        setAllLeads([]);
+      })
       .finally(() => setLoading(false));
   }, [statusFilter, tierFilter]);
 
@@ -623,7 +266,21 @@ export default function LeadsPage() {
                   </TableCell>
                 </TableRow>
               )}
-              {!loading && filtered.length === 0 && (
+              {!loading && error && (
+                <TableRow>
+                  <TableCell colSpan={13} className="text-center py-12 text-red-400">
+                    Could not load leads — {error}. Check the dashboard again shortly.
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && !error && allLeads.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={13} className="text-center py-12 text-zinc-500">
+                    No leads yet. As soon as the signal engine finds a match in your area, it will appear here.
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && !error && allLeads.length > 0 && filtered.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={13} className="text-center py-12 text-zinc-500">
                     No leads match your filters. Try adjusting your search criteria.

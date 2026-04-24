@@ -2,7 +2,60 @@ import { NextRequest, NextResponse } from 'next/server'
 import { buildDealershipPitch, buildCustomPitch } from '@/lib/agents/pitch-builder'
 import type { Dealer, MarketData, Signal } from '@/lib/types'
 
-// Mock dealer lookup — replace with Supabase when ready
+async function getSupabase() {
+  try {
+    const { createClient } = await import('@/lib/supabase/server')
+    return await createClient()
+  } catch {
+    return null
+  }
+}
+
+async function fetchDealer(id: string): Promise<Partial<Dealer> | null> {
+  const supabase = await getSupabase()
+  if (!supabase) return MOCK_DEALERS[id] ?? null
+  const { data } = await supabase.from('va_dealers').select('*').eq('id', id).single()
+  if (data) return data
+  return MOCK_DEALERS[id] ?? null
+}
+
+async function fetchMarketData(brands: string[]): Promise<Partial<MarketData>[]> {
+  const supabase = await getSupabase()
+  if (supabase) {
+    let query = supabase
+      .from('va_market_data')
+      .select('*')
+      .order('period', { ascending: false })
+      .limit(30)
+    if (brands.length > 0) {
+      query = query.in('brand', brands)
+    }
+    const { data, error } = await query
+    if (!error && data && data.length > 0) return data
+  }
+  return brands.length > 0
+    ? MOCK_MARKET_DATA.filter((m) => brands.includes(m.brand ?? ''))
+    : MOCK_MARKET_DATA
+}
+
+async function fetchSignalsForArea(area: string | null | undefined, city: string | null | undefined): Promise<Partial<Signal>[]> {
+  const supabase = await getSupabase()
+  if (supabase) {
+    let query = supabase
+      .from('va_signals')
+      .select('*')
+      .eq('is_processed', false)
+      .gte('buying_probability', 50)
+      .order('buying_probability', { ascending: false })
+      .limit(10)
+    if (area) query = query.ilike('area', `%${area}%`)
+    const { data, error } = await query
+    if (!error && data && data.length > 0) return data
+  }
+  return MOCK_SIGNALS.filter((s) => !area || s.area === area || s.city === city)
+}
+
+// Sample dealers — only used as fallback when Supabase is unreachable.
 const MOCK_DEALERS: Record<string, Partial<Dealer>> = {
   sandton_motors: {
     id: 'sandton_motors',
@@ -80,22 +133,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'dealer_id is required' }, { status: 400 })
     }
 
-    // Look up dealer (mock for now — replace with Supabase)
-    const dealer = MOCK_DEALERS[dealer_id]
+    const dealer = await fetchDealer(dealer_id)
     if (!dealer) {
       return NextResponse.json({ error: 'Dealer not found' }, { status: 404 })
     }
 
-    // Filter market data for dealer's brands
     const dealerBrands = dealer.brands ?? []
-    const relevantMarket = MOCK_MARKET_DATA.filter(
-      (m) => dealerBrands.length === 0 || dealerBrands.includes(m.brand ?? '')
-    )
-
-    // Filter signals for dealer's area
-    const relevantSignals = MOCK_SIGNALS.filter(
-      (s) => !dealer.area || s.area === dealer.area || s.city === dealer.city
-    )
+    const relevantMarket = await fetchMarketData(dealerBrands)
+    const relevantSignals = await fetchSignalsForArea(dealer.area, dealer.city)
 
     let slides
     if (custom_prompt) {

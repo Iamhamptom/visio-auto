@@ -826,7 +826,7 @@ Always:
 // Multi-model router
 // ---------------------------------------------------------------------------
 
-export type JessModelKey = 'opus' | 'sonnet' | 'gemini'
+export type JessModelKey = 'opus' | 'sonnet' | 'gemini' | 'gemma4'
 
 const REASONING_TRIGGERS = [
   'analyze',
@@ -846,16 +846,34 @@ const LONG_CONTEXT_TRIGGERS = [
   'long',
 ]
 
+const LEAD_INTEL_TRIGGERS = [
+  'score',
+  'qualify',
+  'signal',
+  'enrich',
+  'lookup',
+  'find dealer',
+  'find lead',
+]
+
 export function pickJessModel(message: string, ctxApprox: number): JessModelKey {
-  // PRIMARY: Gemini (Anthropic credit constrained — Gemini is the workhorse for now).
-  // When Anthropic credit is restored, flip JESS_PRIMARY_MODEL env to 'sonnet' to revert.
-  const primary = (process.env.JESS_PRIMARY_MODEL as JessModelKey) || 'gemini'
+  // PRIMARY: configurable via JESS_PRIMARY_MODEL env var.
+  // Default: 'gemma4' (Gemma 4 31B Dense — best open model, Apache 2.0, cheapest).
+  // Fallback to 'gemini' for long context or if Gemma 4 is not available.
+  const primary = (process.env.JESS_PRIMARY_MODEL as JessModelKey) || 'gemma4'
   const lower = (message || '').toLowerCase()
+
+  // Long context → Gemini Pro (256K proven, Gemma 4 also 256K but Gemini more battle-tested here)
   if (ctxApprox > 180000 || LONG_CONTEXT_TRIGGERS.some((t) => lower.includes(t))) {
     return 'gemini'
   }
-  if (primary !== 'gemini' && REASONING_TRIGGERS.some((t) => lower.includes(t))) {
+  // Complex reasoning → Opus (claims, strategy, differential analysis)
+  if (REASONING_TRIGGERS.some((t) => lower.includes(t))) {
     return 'opus'
+  }
+  // Lead intel (high volume, latency-sensitive) → Gemma 4 (free, fast)
+  if (LEAD_INTEL_TRIGGERS.some((t) => lower.includes(t))) {
+    return 'gemma4'
   }
   return primary
 }
@@ -866,6 +884,8 @@ function modelFor(key: JessModelKey) {
       return anthropic('claude-opus-4-6')
     case 'gemini':
       return google('gemini-2.5-pro')
+    case 'gemma4':
+      return google('gemma-4-31b-it')
     case 'sonnet':
     default:
       return anthropic('claude-sonnet-4-6')

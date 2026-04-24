@@ -227,9 +227,9 @@ export default function IntegrationsPage() {
 
     try {
       if (id === "vprai") {
-        const res = await fetch("/api/integrations/vprai/sync", {
-          headers: { Authorization: `Bearer ${id}` }, // placeholder
-        })
+        // Same-origin call from the dashboard — the server trusts these
+        // without a bearer token.
+        const res = await fetch("/api/integrations/vprai/sync")
         const data = await res.json()
 
         setIntegrations((prev) =>

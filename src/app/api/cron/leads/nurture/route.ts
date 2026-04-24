@@ -14,12 +14,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Chairman's rule: never auto-send to leads without explicit opt-in.
+  // This cron runs in "dry-run" mode by default — it plans the next message
+  // but does NOT dispatch. Flip AUTO_NOTIFY_ENABLED=true to let it send.
+  const dryRun = process.env.AUTO_NOTIFY_ENABLED !== 'true'
+
   try {
     const { createClient } = await import('@/lib/supabase/server')
     const supabase = await createClient()
 
     const now = new Date()
-    const results = { day1: 0, day3: 0, day7: 0, errors: 0 }
+    const results = { day1: 0, day3: 0, day7: 0, errors: 0, dry_run_queued: 0 }
 
     // Fetch leads that are 'new' or 'contacted' and need nurturing
     const { data: leads, error } = await supabase
@@ -89,9 +94,14 @@ export async function GET(request: NextRequest) {
 
         if (!message || !newStage) continue
 
-        // Send via WhatsApp
         const phone = lead.whatsapp ?? lead.phone
         if (!phone) continue
+
+        if (dryRun) {
+          results.dry_run_queued++
+          console.log(`[Nurture][dry-run] would send to ${phone}: ${message.slice(0, 80)}…`)
+          continue
+        }
 
         await fetch(`${baseUrl}/api/whatsapp/send`, {
           method: 'POST',
@@ -103,12 +113,9 @@ export async function GET(request: NextRequest) {
           }),
         })
 
-        // Update lead
         const updates: Record<string, unknown> = {
           source_detail: appendNurtureStage(lead.source_detail, newStage),
         }
-
-        // After first touch, move to 'contacted'
         if (lead.status === 'new') {
           updates.status = 'contacted'
           updates.contacted_at = now.toISOString()
@@ -121,12 +128,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log(`[Nurture] Completed — Day1: ${results.day1}, Day3: ${results.day3}, Day7: ${results.day7}, Errors: ${results.errors}`)
+    console.log(
+      `[Nurture] Completed — dry_run=${dryRun} Day1: ${results.day1}, Day3: ${results.day3}, Day7: ${results.day7}, queued: ${results.dry_run_queued}, errors: ${results.errors}`
+    )
 
     return NextResponse.json({
       success: true,
+      dry_run: dryRun,
       processed: leads.length,
       ...results,
+      note: dryRun
+        ? 'AUTO_NOTIFY_ENABLED is off — nurture messages queued but not dispatched. Flip env and re-run to send.'
+        : undefined,
     })
   } catch (err) {
     console.error('[Nurture] Cron error:', err)

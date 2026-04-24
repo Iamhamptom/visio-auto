@@ -11,9 +11,23 @@ import type { Lead } from '@/lib/types'
 const SYNC_API_KEY = process.env.VPRAI_API_KEY || process.env.VISIO_GATEWAY_KEY || ''
 
 function validateAuth(request: NextRequest): boolean {
-  if (!SYNC_API_KEY) return false
-  const auth = request.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return auth === SYNC_API_KEY
+  const auth = request.headers.get('authorization')?.replace('Bearer ', '') ?? ''
+
+  // Accept the configured key for external callers (cron, Workspace).
+  if (SYNC_API_KEY && auth === SYNC_API_KEY) return true
+
+  // Same-origin dashboard callers: the dashboard itself triggers syncs, so a
+  // request whose Origin/Referer matches this deployment is trusted.
+  const origin = request.headers.get('origin') ?? ''
+  const referer = request.headers.get('referer') ?? ''
+  const host = request.headers.get('host') ?? ''
+  const selfOrigin = host ? `https://${host}` : ''
+  const sameOrigin =
+    (origin && host && origin.endsWith(host)) ||
+    (referer && host && referer.includes(host)) ||
+    (selfOrigin && (origin === selfOrigin || referer.startsWith(selfOrigin)))
+
+  return Boolean(sameOrigin)
 }
 
 // ---------------------------------------------------------------------------

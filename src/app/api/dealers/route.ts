@@ -133,33 +133,45 @@ export async function GET(request: NextRequest) {
 
   const { tier, city, province, brand, is_active, page, limit } = parsed.data
 
-  // TODO: Replace with Supabase query when DB is connected
+  // Primary path: Supabase. Fall back to MOCK_DEALERS only if the DB is
+  // unreachable, so local dev without env keys still renders something.
+  try {
+    const { createClient } = await import('@/lib/supabase/server')
+    const supabase = await createClient()
+    let query = supabase
+      .from('va_dealers')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1)
+
+    if (tier) query = query.eq('tier', tier)
+    if (city) query = query.ilike('city', `%${city}%`)
+    if (province) query = query.ilike('province', `%${province}%`)
+    if (brand) query = query.contains('brands', [brand])
+    if (is_active !== undefined) query = query.eq('is_active', is_active === 'true')
+
+    const { data, count, error } = await query
+    if (!error && data) {
+      return NextResponse.json({
+        dealers: data,
+        total: count ?? data.length,
+        page,
+        limit,
+        total_pages: Math.ceil((count ?? data.length) / limit),
+      })
+    }
+  } catch {
+    // fall through to mock
+  }
+
+  // Mock fallback (flagged so the client knows)
   let dealers = [...MOCK_DEALERS]
+  if (tier) dealers = dealers.filter((d) => d.tier === tier)
+  if (city) dealers = dealers.filter((d) => d.city.toLowerCase().includes(city.toLowerCase()))
+  if (province) dealers = dealers.filter((d) => d.province.toLowerCase().includes(province.toLowerCase()))
+  if (brand) dealers = dealers.filter((d) => d.brands.some((b) => b.toLowerCase().includes(brand.toLowerCase())))
+  if (is_active !== undefined) dealers = dealers.filter((d) => d.is_active === (is_active === 'true'))
 
-  // Apply filters
-  if (tier) {
-    dealers = dealers.filter((d) => d.tier === tier)
-  }
-  if (city) {
-    dealers = dealers.filter((d) =>
-      d.city.toLowerCase().includes(city.toLowerCase())
-    )
-  }
-  if (province) {
-    dealers = dealers.filter((d) =>
-      d.province.toLowerCase().includes(province.toLowerCase())
-    )
-  }
-  if (brand) {
-    dealers = dealers.filter((d) =>
-      d.brands.some((b) => b.toLowerCase().includes(brand.toLowerCase()))
-    )
-  }
-  if (is_active !== undefined) {
-    dealers = dealers.filter((d) => d.is_active === (is_active === "true"))
-  }
-
-  // Pagination
   const total = dealers.length
   const start = (page - 1) * limit
   const paginated = dealers.slice(start, start + limit)
@@ -170,6 +182,7 @@ export async function GET(request: NextRequest) {
     page,
     limit,
     total_pages: Math.ceil(total / limit),
+    source: 'fallback_sample',
   })
 }
 

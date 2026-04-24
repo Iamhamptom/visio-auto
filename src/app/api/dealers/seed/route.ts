@@ -153,14 +153,28 @@ function buildDealers(): Dealer[] {
 
 export async function POST() {
   const dealers = buildDealers()
+  let inserted = 0
+  let db_error: string | null = null
 
-  // TODO: Insert into Supabase in batches
-  // const batchSize = 25
-  // for (let i = 0; i < dealers.length; i += batchSize) {
-  //   const batch = dealers.slice(i, i + batchSize)
-  //   const { error } = await supabase.from('va_dealers').upsert(batch, { onConflict: 'id' })
-  //   if (error) throw error
-  // }
+  try {
+    const { createServiceClient } = await import('@/lib/supabase/service')
+    const supabase = createServiceClient()
+
+    const batchSize = 25
+    for (let i = 0; i < dealers.length; i += batchSize) {
+      const batch = dealers.slice(i, i + batchSize)
+      const { error, count } = await supabase
+        .from('va_dealers')
+        .upsert(batch, { onConflict: 'id', count: 'exact' })
+      if (error) {
+        db_error = error.message
+        break
+      }
+      inserted += count ?? batch.length
+    }
+  } catch (err) {
+    db_error = err instanceof Error ? err.message : String(err)
+  }
 
   // Summary stats
   const byGroup = dealers.reduce<Record<string, number>>((acc, d) => {
@@ -184,8 +198,10 @@ export async function POST() {
   const totalMRR = dealers.reduce((sum, d) => sum + d.monthly_fee, 0)
 
   return NextResponse.json({
-    success: true,
+    success: db_error === null,
     count: dealers.length,
+    persisted: inserted,
+    db_error,
     total_mrr_potential: totalMRR,
     summary: {
       by_group: byGroup,
@@ -193,6 +209,8 @@ export async function POST() {
       by_brand: byBrand,
     },
     sample: dealers.slice(0, 5),
-    message: `Seeded ${dealers.length} dealerships across ${Object.keys(byGroup).length} dealer groups. Total MRR potential: R${totalMRR.toLocaleString("en-ZA")}/month.`,
+    message: db_error
+      ? `Built ${dealers.length} dealerships but Supabase insert failed: ${db_error}`
+      : `Seeded ${inserted}/${dealers.length} dealerships across ${Object.keys(byGroup).length} groups. Total MRR potential: R${totalMRR.toLocaleString('en-ZA')}/month.`,
   })
 }

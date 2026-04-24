@@ -21,20 +21,37 @@ type DealerInfo = {
   dealer_principal: string
   area: string
   brands: string[]
+  email: string | null
 }
 
-// Quick lookup for demo — in production this comes from DB
-const DEMO_DEALERS: Record<string, DealerInfo> = {
-  "d-001": { id: "d-001", name: "Motus Toyota Kempton Park", dealer_principal: "Werner van Rooyen", area: "Kempton Park", brands: ["Toyota"] },
-  "d-002": { id: "d-002", name: "BMW Bryanston (JSN Motors)", dealer_principal: "Johan Smit", area: "Bryanston", brands: ["BMW"] },
-  "d-003": { id: "d-003", name: "Audi Centre Sandton", dealer_principal: "Michael Fourie", area: "Sandton", brands: ["Audi"] },
-  "d-004": { id: "d-004", name: "Mercedes-Benz Sandton", dealer_principal: "Pierre du Toit", area: "Sandton", brands: ["Mercedes-Benz"] },
-  "d-005": { id: "d-005", name: "Hatfield VW", dealer_principal: "Leon Erasmus", area: "Hatfield", brands: ["Volkswagen"] },
-  "d-006": { id: "d-006", name: "NTT Toyota Menlyn", dealer_principal: "Stefan Naidoo", area: "Menlyn", brands: ["Toyota"] },
-  "d-007": { id: "d-007", name: "CMH Kia Sandton", dealer_principal: "Kevin Moodley", area: "Sandton", brands: ["Kia"] },
-  "d-008": { id: "d-008", name: "Pharoah Auto", dealer_principal: "Yusuf Moosa", area: "Sandton", brands: ["Porsche", "Ferrari", "Lamborghini"] },
-  "d-009": { id: "d-009", name: "Halfway Toyota Fourways", dealer_principal: "Francois Viljoen", area: "Fourways", brands: ["Toyota"] },
-  "d-010": { id: "d-010", name: "SMH BMW Oakdene", dealer_principal: "Charl Steyn", area: "Oakdene", brands: ["BMW"] },
+async function fetchDealers(ids: string[]): Promise<{ found: DealerInfo[]; notFound: string[] }> {
+  try {
+    const { createClient } = await import('@/lib/supabase/server')
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('va_dealers')
+      .select('id, name, dealer_principal, area, brands, email')
+      .in('id', ids)
+
+    if (!error && data) {
+      const foundIds = new Set(data.map((d) => d.id))
+      const notFound = ids.filter((id) => !foundIds.has(id))
+      return {
+        found: data.map((d) => ({
+          id: d.id,
+          name: d.name,
+          dealer_principal: d.dealer_principal ?? 'Dealer Principal',
+          area: d.area ?? '',
+          brands: d.brands ?? [],
+          email: d.email ?? null,
+        })),
+        notFound,
+      }
+    }
+  } catch {
+    // fall through
+  }
+  return { found: [], notFound: ids }
 }
 
 function generateColdIntro(dealer: DealerInfo) {
@@ -174,40 +191,20 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // TODO: Fetch dealers from Supabase
-  // const { data: dealers } = await supabase.from('va_dealers').select('*').in('id', dealer_ids)
+  const { found, notFound } = await fetchDealers(dealer_ids)
 
-  const emails: Array<{
-    dealer_id: string
-    dealer_name: string
-    to_email: string
-    subject: string
-    body: string
-    template: string
-    generated_at: string
-  }> = []
-
-  const notFound: string[] = []
-
-  for (const dealerId of dealer_ids) {
-    const dealer = DEMO_DEALERS[dealerId]
-    if (!dealer) {
-      notFound.push(dealerId)
-      continue
-    }
-
+  const emails = found.map((dealer) => {
     const { subject, body } = generator(dealer)
-
-    emails.push({
+    return {
       dealer_id: dealer.id,
       dealer_name: dealer.name,
-      to_email: `info@${dealer.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 30)}.co.za`,
+      to_email: dealer.email ?? null,
       subject,
       body,
       template,
       generated_at: new Date().toISOString(),
-    })
-  }
+    }
+  })
 
   return NextResponse.json({
     success: true,
@@ -215,6 +212,7 @@ export async function POST(request: NextRequest) {
     emails_generated: emails.length,
     not_found: notFound.length > 0 ? notFound : undefined,
     emails,
-    message: `Generated ${emails.length} ${template.replace(/_/g, " ")} emails. Ready to send via /api/outreach/send.`,
+    requires_approval: true,
+    message: `Generated ${emails.length} ${template.replace(/_/g, ' ')} drafts. Review then POST to /api/outreach/send with { approved: true } to dispatch.`,
   })
 }

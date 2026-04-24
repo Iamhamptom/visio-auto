@@ -1,4 +1,7 @@
 import type { Dealer, Lead, Language } from '@/lib/types'
+import { checkNotificationGate } from '@/lib/leads/notification-gate'
+import { sendEmail } from '@/lib/email/resend'
+import { dealerLeadNotificationEmail } from '@/lib/email/templates'
 
 // ---------------------------------------------------------------------------
 // Dealer notification after lead assignment
@@ -136,9 +139,25 @@ export async function notifyDealer(
     | 'id' | 'name' | 'phone' | 'ai_score' | 'score_tier'
     | 'budget_min' | 'budget_max' | 'preferred_brand'
     | 'timeline' | 'area' | 'source' | 'language'
-  >
-): Promise<{ whatsapp_sent: boolean; email_prepared: boolean }> {
-  const result = { whatsapp_sent: false, email_prepared: false }
+  >,
+  opts: { manualOverride?: boolean } = {}
+): Promise<{ whatsapp_sent: boolean; email_sent: boolean; gated: boolean; gate_reason?: string }> {
+  const result = { whatsapp_sent: false, email_sent: false, gated: false, gate_reason: undefined as string | undefined }
+
+  // Approval gate — no outbound without permission.
+  const gate = checkNotificationGate({
+    kind: 'dealer_new_lead',
+    score_tier: lead.score_tier,
+    manual_override: opts.manualOverride,
+  })
+
+  if (!gate.allowed) {
+    result.gated = true
+    result.gate_reason = gate.reason
+    console.log(`[Notify] Gated — dealer "${dealer.name}", lead ${lead.id}: ${gate.reason}`)
+    return result
+  }
+
   const lang: Language = (lead.language as Language) ?? 'en'
 
   const vars: Record<string, string> = {
@@ -186,20 +205,19 @@ export async function notifyDealer(
     console.log(`[Notify] Dealer "${dealer.name}" has no WhatsApp number — skipping`)
   }
 
-  // --- Email notification (prepare payload, log for now) ---
+  // --- Email notification via Resend ---
   if (dealer.email) {
-    try {
-      let emailHtml = EMAIL_TEMPLATE
-      for (const [key, val] of Object.entries(vars)) {
-        emailHtml = emailHtml.replaceAll(`{${key}}`, val)
-      }
-
-      // TODO: Integrate with Resend/SendGrid when configured
-      console.log(`[Notify] Email prepared for dealer "${dealer.name}" (${dealer.email})`)
-      console.log(`[Notify] Subject: New ${lead.score_tier.toUpperCase()} Lead — ${lead.name}`)
-      result.email_prepared = true
-    } catch (err) {
-      console.error('[Notify] Email error:', err)
+    const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://auto.visiocorp.co'}/dashboard/leads/${lead.id}`
+    const email = dealerLeadNotificationEmail({ name: dealer.name }, lead, dashboardUrl)
+    const sendResult = await sendEmail({
+      to: dealer.email,
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
+    })
+    result.email_sent = sendResult.sent
+    if (!sendResult.sent) {
+      console.log(`[Notify] Email not sent to "${dealer.name}": ${sendResult.skipped_reason ?? sendResult.error}`)
     }
   }
 

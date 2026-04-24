@@ -260,7 +260,36 @@ export default function LeadDetailPage({
   const [vehicles, setVehicles] = useState(matchedVehicles);
   const [loading, setLoading] = useState(true);
   const [waMessage, setWaMessage] = useState("");
+  const [waSending, setWaSending] = useState(false);
+  const [waSendStatus, setWaSendStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  async function sendWhatsApp() {
+    if (!waMessage.trim()) return;
+    setWaSending(true);
+    setWaSendStatus(null);
+    try {
+      const res = await fetch("/api/whatsapp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: lead.phone, message: waMessage, lead_id: lead.id }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setWaSendStatus({ ok: false, message: body.error ?? `Send failed (${res.status})` });
+      } else {
+        setWaSendStatus({ ok: true, message: "Sent." });
+        setWaMessage("");
+      }
+    } catch (err) {
+      setWaSendStatus({
+        ok: false,
+        message: err instanceof Error ? err.message : "Send failed",
+      });
+    } finally {
+      setWaSending(false);
+    }
+  }
 
   useEffect(() => {
     // Fetch lead detail
@@ -511,41 +540,34 @@ export default function LeadDetailPage({
             </div>
 
             {/* Input */}
-            <div className="mt-4 flex gap-2 border-t border-zinc-800/50 pt-4">
-              <input
-                type="text"
-                placeholder="Type a message..."
-                value={waMessage}
-                onChange={(e) => setWaMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && waMessage.trim()) {
-                    fetch("/api/whatsapp/send", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ phone: lead.phone, message: waMessage }),
-                    }).catch(() => {});
-                    setWaMessage("");
-                  }
-                }}
-                className="flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-emerald-500/50"
-              />
-              <Button
-                size="sm"
-                className="bg-emerald-600 text-white hover:bg-emerald-500"
-                onClick={async () => {
-                  if (!waMessage.trim()) return;
-                  try {
-                    await fetch("/api/whatsapp/send", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ phone: lead.phone, message: waMessage }),
-                    });
-                  } catch { /* silently fail */ }
-                  setWaMessage("");
-                }}
-              >
-                <Send className="h-3.5 w-3.5" />
-              </Button>
+            <div className="mt-4 border-t border-zinc-800/50 pt-4">
+              {waSendStatus && (
+                <p className={`text-xs mb-2 ${waSendStatus.ok ? "text-emerald-400" : "text-red-400"}`}>
+                  {waSendStatus.message}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Type a message..."
+                  value={waMessage}
+                  onChange={(e) => setWaMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && waMessage.trim() && !waSending) {
+                      sendWhatsApp();
+                    }
+                  }}
+                  className="flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-emerald-500/50"
+                />
+                <Button
+                  size="sm"
+                  disabled={waSending || !waMessage.trim()}
+                  className="bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50"
+                  onClick={sendWhatsApp}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

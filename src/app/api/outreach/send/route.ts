@@ -17,6 +17,9 @@ const sendSchema = z.object({
   lead_id: z.string().optional(),
   signal_id: z.string().optional(),
   template: z.string().optional(),
+  // Chairman's hard rule: never auto-send without approval.
+  // Caller must either pass approved=true or authenticate as cron.
+  approved: z.boolean().optional(),
 })
 
 // ---------------------------------------------------------------------------
@@ -39,7 +42,22 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { to, subject, html, from_name, from_email, reply_to, dealer_id, lead_id, signal_id, template } = parsed.data
+  const { to, subject, html, from_name, from_email, reply_to, dealer_id, lead_id, signal_id, template, approved } = parsed.data
+
+  // Approval gate
+  const cronSecret = process.env.CRON_SECRET
+  const authHeader = request.headers.get("authorization")
+  const fromCron = cronSecret ? authHeader === `Bearer ${cronSecret}` : false
+
+  if (!approved && !fromCron) {
+    return NextResponse.json(
+      {
+        error: "Send blocked — explicit approval required",
+        hint: "Pass { approved: true } in the body after reviewing the draft, or call with the cron bearer token.",
+      },
+      { status: 403 }
+    )
+  }
 
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) {

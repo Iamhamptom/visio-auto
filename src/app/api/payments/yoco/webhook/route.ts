@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyWebhookSignature } from "@/lib/payments/yoco";
+import { sendEmail } from "@/lib/email/resend";
+import { welcomeEmail, paymentReceiptEmail } from "@/lib/email/templates";
 
 async function getSupabase() {
   try {
@@ -7,6 +9,59 @@ async function getSupabase() {
     return createServiceClient();
   } catch {
     return null;
+  }
+}
+
+async function sendWelcomePack(
+  supabase: NonNullable<Awaited<ReturnType<typeof getSupabase>>>,
+  dealer_id: string,
+  tier: string,
+  amount_cents: number
+) {
+  const { data: dealer } = await supabase
+    .from("va_dealers")
+    .select("name, email, whatsapp_number")
+    .eq("id", dealer_id)
+    .single();
+
+  if (!dealer?.email) {
+    console.log(`[Yoco] No email on file for dealer ${dealer_id} — skipping welcome pack`);
+    return;
+  }
+
+  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://auto.visiocorp.co"}/dashboard`;
+  const receiptUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://auto.visiocorp.co"}/dashboard?receipt=latest`;
+
+  const welcome = welcomeEmail(dealer.name, tier, dashboardUrl);
+  const receipt = paymentReceiptEmail(dealer.name, amount_cents, tier, receiptUrl);
+
+  const [welcomeResult, receiptResult] = await Promise.all([
+    sendEmail({ to: dealer.email, subject: welcome.subject, html: welcome.html, text: welcome.text }),
+    sendEmail({ to: dealer.email, subject: receipt.subject, html: receipt.html, text: receipt.text }),
+  ]);
+
+  console.log(
+    `[Yoco] Welcome pack for ${dealer.name}: welcome=${welcomeResult.sent ? "sent" : welcomeResult.skipped_reason ?? welcomeResult.error}, receipt=${receiptResult.sent ? "sent" : receiptResult.skipped_reason ?? receiptResult.error}`
+  );
+
+  // WhatsApp welcome is optional — only fire if a number is configured and
+  // the WhatsApp API is reachable. Transactional welcome does NOT go through
+  // the notification gate (the dealer just paid us — this is a receipt, not outreach).
+  if (dealer.whatsapp_number) {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      await fetch(`${baseUrl}/api/whatsapp/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: dealer.whatsapp_number,
+          message: `Welcome to Visio Auto, ${dealer.name}! Your ${tier} plan is live. Open the dashboard: ${dashboardUrl}`,
+          language: "en",
+        }),
+      });
+    } catch (err) {
+      console.log(`[Yoco] WhatsApp welcome skipped:`, err);
+    }
   }
 }
 
@@ -73,11 +128,17 @@ export async function POST(request: Request) {
           });
         }
 
-        // TODO: Send welcome WhatsApp via Retell / Evolution API
-        // TODO: Send welcome email via Resend
         console.log(
           `Yoco webhook: payment succeeded for dealer=${dealer_id} tier=${tier}`
         );
+
+        // Send welcome pack (email + WhatsApp). Non-blocking: webhook returns 200
+        // even if welcome delivery hiccups, so Yoco doesn't retry.
+        if (supabase) {
+          sendWelcomePack(supabase, dealer_id, tier, payload.amount ?? 0).catch((err) => {
+            console.error("[Yoco] Welcome pack failed:", err);
+          });
+        }
       }
     }
 
