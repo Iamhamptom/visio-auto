@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyWebhookSignature } from "@/lib/payments/yoco";
 import { sendEmail } from "@/lib/email/resend";
 import { welcomeEmail, paymentReceiptEmail } from "@/lib/email/templates";
+import { claimWebhookEvent } from "@/lib/security/idempotency";
 
 async function getSupabase() {
   try {
@@ -84,6 +85,21 @@ export async function POST(request: Request) {
     const body = JSON.parse(rawBody);
     const { type, payload } = body;
 
+    // Idempotency — Yoco retries on non-200. Use the event id (or checkout id
+    // as fallback) so the same payment.succeeded never fires welcome twice.
+    const eventId = body.id ?? payload?.checkoutId ?? payload?.id;
+    if (eventId) {
+      const claim = await claimWebhookEvent({
+        provider: "yoco",
+        eventId: String(eventId),
+        payload: body,
+      });
+      if (!claim.isFirstSeen) {
+        console.log(`[Yoco] event ${eventId} already processed — returning 200 idempotent`);
+        return NextResponse.json({ status: "already_processed", event_id: eventId });
+      }
+    }
+
     const supabase = await getSupabase();
 
     if (type === "payment.succeeded") {
@@ -93,6 +109,24 @@ export async function POST(request: Request) {
 
       if (metadata?.dealer_id && metadata?.tier) {
         const { dealer_id, tier } = metadata;
+
+        // Ownership check — Yoco metadata is set by us at checkout creation,
+        // so a payment that lands here with a dealer_id MUST match a row we
+        // own. If it doesn't, refuse rather than activating a random dealer.
+        if (supabase) {
+          const { data: dealerCheck } = await supabase
+            .from("va_dealers")
+            .select("id, name")
+            .eq("id", dealer_id)
+            .single();
+
+          if (!dealerCheck) {
+            console.error(
+              `[Yoco] payment.succeeded references unknown dealer_id=${dealer_id} — refusing to activate`
+            );
+            return NextResponse.json({ error: "Unknown dealer" }, { status: 404 });
+          }
+        }
 
         if (supabase) {
           // Activate dealer tier

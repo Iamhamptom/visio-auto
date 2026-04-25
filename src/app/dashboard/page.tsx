@@ -46,6 +46,14 @@ import {
   CartesianGrid,
 } from "recharts";
 import type { Lead, Signal } from "@/lib/types";
+
+interface KpiRow {
+  title: string;
+  value: number;
+  change_pct: number;
+  format: "number" | "rand" | "percent";
+  subtitle?: string;
+}
 import { KPICard } from "@/components/dashboard/KPICard";
 import { SignalFeed } from "@/components/dashboard/SignalFeed";
 import { LeadTable } from "@/components/dashboard/LeadTable";
@@ -316,6 +324,8 @@ export default function DashboardOverview() {
   const [leads, setLeads] = useState<Partial<Lead>[]>(recentLeads);
   const [signals, setSignals] = useState<Partial<Signal>[]>(recentSignals);
   const [loading, setLoading] = useState(true);
+  const [kpiData, setKpiData] = useState<KpiRow[] | null>(null);
+  const [kpiError, setKpiError] = useState<string | null>(null);
   const elapsed = useElapsedTime();
 
   useEffect(() => {
@@ -332,22 +342,37 @@ export default function DashboardOverview() {
           const rows = json.data ?? json.signals ?? [];
           if (rows.length > 0) setSignals(rows);
         }),
+      fetch("/api/dashboard/kpis")
+        .then(async (r) => {
+          if (!r.ok) throw new Error(`KPI fetch ${r.status}`);
+          return r.json();
+        })
+        .then((json) => setKpiData(json.kpis ?? null))
+        .catch((err) => setKpiError(err instanceof Error ? err.message : "KPI fetch failed")),
     ]).finally(() => setLoading(false));
   }, []);
 
-  // Compute KPIs from live leads data
-  const computedKpis =
-    leads.length > 0
-      ? kpiConfig.map((kpi) => {
-          if (kpi.title === "Total Leads") return { ...kpi, value: leads.length };
-          if (kpi.title === "Hot Leads")
-            return {
-              ...kpi,
-              value: leads.filter((l) => l.score_tier === "hot").length,
-            };
-          return kpi;
-        })
-      : kpiConfig;
+  // Real KPIs from /api/dashboard/kpis. Fall back to scaffold config (label/icon/color)
+  // and inject live values, deltas, and subtitles. No hardcoded fake numbers.
+  const FORMAT = (v: number, fmt?: string) => {
+    if (fmt === "rand") return `R${(v / 1000).toFixed(0)}K`;
+    if (fmt === "percent") return `${v}%`;
+    return v.toLocaleString("en-ZA");
+  };
+
+  const computedKpis = (kpiData ?? []).map((live, i) => {
+    const scaffold = kpiConfig[i] ?? kpiConfig[0];
+    return {
+      ...scaffold,
+      title: live.title,
+      value: live.value,
+      change: Math.abs(live.change_pct),
+      changeDirection: live.change_pct >= 0 ? ("up" as const) : ("down" as const),
+      subtitle: live.subtitle ?? scaffold.subtitle,
+      format: live.format === "rand" ? "currency" : live.format === "percent" ? "percent" : "number",
+      formatValue: FORMAT(live.value, live.format),
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -414,7 +439,7 @@ export default function DashboardOverview() {
             change={kpi.change}
             changeDirection={kpi.changeDirection}
             icon={kpi.icon}
-            format={kpi.format}
+            format={kpi.format as "number" | "time" | "percent" | "currency"}
             delay={index * 0.08}
             subtitle={kpi.subtitle}
             color={kpi.color}

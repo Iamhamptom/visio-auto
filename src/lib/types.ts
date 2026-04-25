@@ -70,6 +70,23 @@ export interface Lead {
   sold_at: string | null
   sale_amount: number | null
   created_at: string
+  // POPIA + product extensions (added 2026-04-25)
+  consent_version?: string | null
+  consent_at?: string | null
+  consent_ip?: string | null
+  popia_lawful_basis?: string | null
+  opt_out_token?: string | null
+  opted_out_at?: string | null
+  notification_status?: 'pending_approval' | 'approved' | 'sent' | 'failed' | 'skipped' | null
+  oem_pass_through?: boolean | null
+  oem_brand_detected?: string | null
+  oem_referrer_url?: string | null
+  utm_source?: string | null
+  utm_medium?: string | null
+  utm_campaign?: string | null
+  utm_content?: string | null
+  utm_term?: string | null
+  landing_referrer?: string | null
 }
 
 export interface Signal {

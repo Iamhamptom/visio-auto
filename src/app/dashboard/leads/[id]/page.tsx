@@ -17,6 +17,7 @@ import {
   Send,
   CheckCircle2,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import {
   Card,
@@ -27,189 +28,56 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-// --- Mock lead detail data ---
+interface LeadDetail {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string | null;
+  whatsapp?: string | null;
+  area?: string | null;
+  city?: string | null;
+  province?: string | null;
+  budget_min?: number | null;
+  budget_max?: number | null;
+  preferred_brand?: string | null;
+  preferred_model?: string | null;
+  preferred_type?: string | null;
+  new_or_used?: string | null;
+  has_trade_in?: boolean | null;
+  trade_in_brand?: string | null;
+  trade_in_model?: string | null;
+  trade_in_year?: number | null;
+  timeline?: string | null;
+  finance_status?: string | null;
+  ai_score: number;
+  score_tier: "hot" | "warm" | "cold";
+  source?: string | null;
+  language?: string | null;
+  status: string;
+  created_at?: string;
+  contacted_at?: string | null;
+  test_drive_at?: string | null;
+  oem_pass_through?: boolean;
+  oem_brand_detected?: string | null;
+}
 
-const leadsMap: Record<
-  string,
-  {
-    id: string;
-    name: string;
-    phone: string;
-    email: string;
-    whatsapp: string;
-    area: string;
-    city: string;
-    province: string;
-    budget_min: number;
-    budget_max: number;
-    preferred_brand: string;
-    preferred_model: string;
-    preferred_type: string;
-    new_or_used: string;
-    has_trade_in: boolean;
-    trade_in_brand: string;
-    trade_in_model: string;
-    trade_in_year: number;
-    timeline: string;
-    finance_status: string;
-    ai_score: number;
-    score_tier: string;
-    source: string;
-    source_detail: string;
-    language: string;
-    status: string;
-    created_at: string;
-  }
-> = {
-  l1: {
-    id: "l1",
-    name: "Thabo Molefe",
-    phone: "+27 82 345 6789",
-    email: "thabo.molefe@discovery.co.za",
-    whatsapp: "+27 82 345 6789",
-    area: "Sandton",
-    city: "Johannesburg",
-    province: "Gauteng",
-    budget_min: 500000,
-    budget_max: 650000,
-    preferred_brand: "BMW",
-    preferred_model: "3 Series",
-    preferred_type: "sedan",
-    new_or_used: "new",
-    has_trade_in: true,
-    trade_in_brand: "VW",
-    trade_in_model: "Polo",
-    trade_in_year: 2022,
-    timeline: "this_week",
-    finance_status: "pre_approved",
-    ai_score: 92,
-    score_tier: "hot",
-    source: "LinkedIn Signal",
-    source_detail: "Promoted to Senior Manager at Discovery Health",
-    language: "en",
-    status: "qualified",
-    created_at: "2026-03-29",
-  },
-  l4: {
-    id: "l4",
-    name: "Lerato Dlamini",
-    phone: "+27 76 567 8901",
-    email: "lerato@dlaminigroup.co.za",
-    whatsapp: "+27 76 567 8901",
-    area: "Sandton",
-    city: "Johannesburg",
-    province: "Gauteng",
-    budget_min: 700000,
-    budget_max: 920000,
-    preferred_brand: "Mercedes",
-    preferred_model: "GLC",
-    preferred_type: "suv",
-    new_or_used: "new",
-    has_trade_in: false,
-    trade_in_brand: "",
-    trade_in_model: "",
-    trade_in_year: 0,
-    timeline: "this_week",
-    finance_status: "cash",
-    ai_score: 94,
-    score_tier: "hot",
-    source: "Referral",
-    source_detail: "Referred by Johan at Sandton Motor Group",
-    language: "en",
-    status: "negotiating",
-    created_at: "2026-03-27",
-  },
-};
+interface MatchedVehicle {
+  id: string;
+  brand: string;
+  model: string;
+  year: number;
+  price: number;
+  match_score: number;
+  features?: string[];
+  color?: string | null;
+  mileage?: number | null;
+  condition?: string | null;
+  vin?: string | null;
+  variant?: string | null;
+}
 
-// Default fallback lead for any ID not in the map
-const defaultLead = leadsMap.l1;
-
-const whatsappMessages = [
-  {
-    sender: "ai",
-    message:
-      "Hi Thabo! I'm the AI assistant at Sandton Motor Group. I noticed you might be looking for a new BMW. We have some excellent options in your budget range. Would you like to hear more?",
-    time: "10:32",
-  },
-  {
-    sender: "lead",
-    message:
-      "Hey, yes I'm looking at the new 3 Series. My budget is around R600K. Do you have any in stock?",
-    time: "10:35",
-  },
-  {
-    sender: "ai",
-    message:
-      "Great taste! We currently have 3 BMW 320i models available. I can see you have a VW Polo trade-in — we can offer competitive trade-in values. Would you like to book a test drive this week?",
-    time: "10:36",
-  },
-  {
-    sender: "lead",
-    message: "Yes definitely, I'm free on Saturday morning. Is 10am ok?",
-    time: "10:38",
-  },
-  {
-    sender: "ai",
-    message:
-      "Saturday at 10am is perfect! I've booked you in with our sales consultant Mpho. He'll have the car ready for you. See you at our Sandton showroom. Is there anything else I can help with?",
-    time: "10:39",
-  },
-  {
-    sender: "lead",
-    message:
-      "No that's perfect, thanks! Looking forward to it.",
-    time: "10:41",
-  },
-];
-
-const matchedVehicles = [
-  {
-    id: "v1",
-    brand: "BMW",
-    model: "320i M Sport",
-    year: 2026,
-    color: "Mineral White",
-    price: 615000,
-    mileage: 0,
-    condition: "new",
-    vin: "WBA8E3C56NF123456",
-    features: ["M Sport Package", "Sunroof", "Harman Kardon", "Adaptive Cruise"],
-    match_score: 96,
-  },
-  {
-    id: "v2",
-    brand: "BMW",
-    model: "320d",
-    year: 2025,
-    color: "Black Sapphire",
-    price: 580000,
-    mileage: 8500,
-    condition: "demo",
-    vin: "WBA8E3C56NF654321",
-    features: ["Luxury Line", "Heated Seats", "Digital Cockpit", "Park Assist"],
-    match_score: 89,
-  },
-  {
-    id: "v3",
-    brand: "BMW",
-    model: "330i",
-    year: 2025,
-    color: "Portimao Blue",
-    price: 650000,
-    mileage: 12000,
-    condition: "certified_preowned",
-    vin: "WBA8E3C56NF789012",
-    features: [
-      "M Sport",
-      "Head-Up Display",
-      "360 Camera",
-      "Wireless Charging",
-    ],
-    match_score: 84,
-  },
-];
-
-function formatRand(amount: number) {
+function formatRand(amount: number | null | undefined) {
+  if (amount == null) return "—";
   return new Intl.NumberFormat("en-ZA", {
     style: "currency",
     currency: "ZAR",
@@ -256,16 +124,18 @@ export default function LeadDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const [lead, setLead] = useState(leadsMap[id] || defaultLead);
-  const [vehicles, setVehicles] = useState(matchedVehicles);
+  const [lead, setLead] = useState<LeadDetail | null>(null);
+  const [vehicles, setVehicles] = useState<MatchedVehicle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [waMessage, setWaMessage] = useState("");
   const [waSending, setWaSending] = useState(false);
   const [waSendStatus, setWaSendStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   async function sendWhatsApp() {
-    if (!waMessage.trim()) return;
+    if (!waMessage.trim() || !lead) return;
     setWaSending(true);
     setWaSendStatus(null);
     try {
@@ -292,31 +162,70 @@ export default function LeadDetailPage({
   }
 
   useEffect(() => {
-    // Fetch lead detail
-    fetch(`/api/leads/${id}`)
-      .then((r) => r.json())
-      .then((json) => {
-        const row = json.data ?? json.lead ?? json;
-        if (row && row.id) {
-          setLead((prev: typeof lead) => ({ ...prev, ...row }));
-        }
-      })
-      .catch(() => {/* keep mock */});
+    setLoading(true);
+    setError(null);
+    setNotFound(false);
 
-    // Fetch matched vehicles
+    fetch(`/api/leads/${id}`)
+      .then(async (r) => {
+        if (r.status === 404) {
+          setNotFound(true);
+          return null;
+        }
+        if (!r.ok) throw new Error(`Lead fetch failed (${r.status})`);
+        return r.json();
+      })
+      .then((json) => {
+        if (!json) return;
+        const row = json.data ?? json.lead ?? json;
+        if (row && row.id) setLead(row as LeadDetail);
+      })
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
+
     fetch("/api/inventory/match", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lead_id: id }),
     })
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json() : { vehicles: [] }))
       .then((json) => {
         const rows = json.data ?? json.vehicles ?? [];
-        if (rows.length > 0) setVehicles(rows);
+        setVehicles(rows);
       })
-      .catch(() => {/* keep mock */})
-      .finally(() => setLoading(false));
+      .catch(() => setVehicles([]));
   }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className="space-y-4 max-w-md">
+        <h1 className="text-xl font-semibold text-white">Lead not found</h1>
+        <p className="text-sm text-zinc-500">
+          We couldn&apos;t find a lead with id <code className="font-mono">{id}</code>. It may have been deleted or merged.
+        </p>
+        <Link href="/dashboard/leads">
+          <Button variant="outline" size="sm">Back to leads</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  if (error || !lead) {
+    return (
+      <div className="space-y-4 max-w-md">
+        <h1 className="text-xl font-semibold text-white">Could not load lead</h1>
+        <p className="text-sm text-red-400">{error ?? "Unknown error"}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -364,7 +273,7 @@ export default function LeadDetailPage({
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ status: "test_drive_booked", test_drive_at: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() }),
                 });
-                setLead((prev) => ({ ...prev, status: "test_drive_booked" }));
+                setLead((prev) => prev ? { ...prev, status: "test_drive_booked" } : prev);
               } catch { /* keep current state */ }
               setActionLoading(null);
             }}
@@ -409,7 +318,7 @@ export default function LeadDetailPage({
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ status: "sold", sold_at: new Date().toISOString() }),
                 });
-                setLead((prev) => ({ ...prev, status: "sold" }));
+                setLead((prev) => prev ? { ...prev, status: "sold" } : prev);
               } catch { /* keep current state */ }
               setActionLoading(null);
             }}
@@ -466,13 +375,13 @@ export default function LeadDetailPage({
               <InfoRow
                 icon={Calendar}
                 label="Timeline"
-                value={lead.timeline.replace(/_/g, " ")}
+                value={(lead.timeline ?? "").replace(/_/g, " ")}
                 highlight={lead.timeline === "this_week"}
               />
               <InfoRow
                 icon={CreditCard}
                 label="Finance"
-                value={lead.finance_status.replace(/_/g, " ")}
+                value={(lead.finance_status ?? "").replace(/_/g, " ")}
                 highlight={lead.finance_status === "pre_approved" || lead.finance_status === "cash"}
               />
 
@@ -489,12 +398,7 @@ export default function LeadDetailPage({
 
               <div className="border-t border-zinc-800/50 pt-4" />
 
-              <InfoRow icon={AlertCircle} label="Source" value={lead.source} />
-              <InfoRow
-                icon={Star}
-                label="Detail"
-                value={lead.source_detail}
-              />
+              <InfoRow icon={AlertCircle} label="Source" value={lead.source ?? "unknown"} />
             </div>
           </CardContent>
         </Card>
@@ -511,32 +415,10 @@ export default function LeadDetailPage({
             </Badge>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {whatsappMessages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex ${msg.sender === "lead" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-xl px-4 py-2.5 ${
-                      msg.sender === "lead"
-                        ? "bg-emerald-600/20 text-emerald-100"
-                        : "bg-zinc-800 text-zinc-300"
-                    }`}
-                  >
-                    <p className="text-sm leading-relaxed">{msg.message}</p>
-                    <p
-                      className={`mt-1 text-right text-[10px] ${
-                        msg.sender === "lead"
-                          ? "text-emerald-400/60"
-                          : "text-zinc-600"
-                      }`}
-                    >
-                      {msg.time}
-                    </p>
-                  </div>
-                </div>
-              ))}
+            <div className="space-y-3 min-h-[120px]">
+              <p className="text-xs text-zinc-500 text-center py-8">
+                No conversation history yet. Start a thread below.
+              </p>
             </div>
 
             {/* Input */}
@@ -593,7 +475,7 @@ export default function LeadDetailPage({
                     <p className="font-medium text-white">
                       {v.year} {v.brand} {v.model}
                     </p>
-                    <p className="text-xs text-zinc-500">{v.color}</p>
+                    <p className="text-xs text-zinc-500">{v.color ?? v.variant ?? ""}</p>
                   </div>
                   <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
                     {v.match_score}% match
@@ -611,26 +493,26 @@ export default function LeadDetailPage({
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-zinc-500">Mileage</span>
                     <span className="font-mono text-sm text-zinc-300">
-                      {v.mileage.toLocaleString()} km
+                      {v.mileage != null ? `${v.mileage.toLocaleString()} km` : "—"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-zinc-500">Condition</span>
                     <span className="text-sm capitalize text-zinc-300">
-                      {v.condition.replace(/_/g, " ")}
+                      {(v.condition ?? "—").replace(/_/g, " ")}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-zinc-500">VIN</span>
                     <span className="font-mono text-[11px] text-zinc-500">
-                      {v.vin}
+                      {v.vin ?? "—"}
                     </span>
                   </div>
                 </div>
 
                 {/* Features */}
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {v.features.map((f) => (
+                  {(v.features ?? []).map((f) => (
                     <span
                       key={f}
                       className="rounded-md bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-400"
@@ -657,10 +539,11 @@ function InfoRow({
 }: {
   icon: typeof User;
   label: string;
-  value: string;
+  value: string | number | null | undefined;
   mono?: boolean;
   highlight?: boolean;
 }) {
+  const display = value == null || value === "" ? "—" : String(value);
   return (
     <div className="flex items-center gap-3">
       <Icon className="h-4 w-4 shrink-0 text-zinc-600" />
@@ -674,7 +557,7 @@ function InfoRow({
               : "text-zinc-300"
         } ${!mono && !highlight ? "capitalize" : ""}`}
       >
-        {value}
+        {display}
       </span>
     </div>
   );

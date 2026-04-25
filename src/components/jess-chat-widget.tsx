@@ -82,6 +82,16 @@ export function JessChatWidget() {
     el.style.height = `${Math.min(el.scrollHeight, 24 * 4 + 16)}px`
   }, [input])
 
+  // ESC closes the chat — keyboard-only users were trapped before this.
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
+
   return (
     <>
       {!open && (

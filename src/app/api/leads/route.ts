@@ -3,6 +3,10 @@ import { z } from 'zod'
 import { scoreLead } from '@/lib/ai/scoring'
 import { autoAssignLead } from '@/lib/leads/auto-assign'
 import { notifyDealer } from '@/lib/leads/auto-notify'
+import { rateLimit, getClientIp, rateLimitedResponse } from '@/lib/security/rate-limit'
+import { findExistingLead, mergeLeadInput } from '@/lib/leads/dedup'
+import { detectOEMPassThrough } from '@/lib/leads/oem-detector'
+import { generateLeadReceipt } from '@/lib/leads/receipts'
 import type { Lead, ScoreTier } from '@/lib/types'
 
 // ---------------------------------------------------------------------------
@@ -38,6 +42,16 @@ const CreateLeadSchema = z.object({
   language: z.enum(['en', 'af', 'zu', 'st', 'ts', 'xh']).default('en'),
   source: z.string().default('get_quote_form'),
   source_detail: z.string().optional(),
+  // POPIA — required from public forms; cron/internal callers can omit.
+  consent: z.boolean().optional(),
+  consent_version: z.string().optional(),
+  // Attribution
+  utm_source: z.string().optional(),
+  utm_medium: z.string().optional(),
+  utm_campaign: z.string().optional(),
+  utm_content: z.string().optional(),
+  utm_term: z.string().optional(),
+  landing_referrer: z.string().optional(),
 })
 
 const ListLeadsQuery = z.object({
@@ -123,6 +137,11 @@ export async function GET(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 10/min per IP for unauthenticated lead creation.
+  const ip = getClientIp(request)
+  const limit = rateLimit(`leads_post:${ip}`, { limit: 10, window: 60 })
+  if (!limit.allowed) return rateLimitedResponse(limit)
+
   let body: unknown
   try {
     body = await request.json()
@@ -139,6 +158,26 @@ export async function POST(request: NextRequest) {
   }
 
   const data = parsed.data
+
+  // POPIA gate — for public form sources, consent is mandatory.
+  const PUBLIC_SOURCES = ['get_quote_form', 'demo_form', 'whatsapp', 'website']
+  const requiresConsent = PUBLIC_SOURCES.includes(data.source)
+  if (requiresConsent && !data.consent) {
+    return NextResponse.json(
+      {
+        error: 'Consent required',
+        detail: 'POPIA: explicit consent must accompany this submission. Pass consent=true with consent_version.',
+      },
+      { status: 400 }
+    )
+  }
+
+  // OEM pass-through detection — flag if this lead first touched an OEM site.
+  const oem = detectOEMPassThrough({
+    referrer: data.landing_referrer,
+    utm_source: data.utm_source,
+    utm_medium: data.utm_medium,
+  })
 
   // Score the lead
   const { score, tier } = scoreLead({
@@ -179,17 +218,54 @@ export async function POST(request: NextRequest) {
     source_detail: data.source_detail ?? null,
     language: data.language,
     status: 'new' as const,
+    // POPIA
+    consent_version: data.consent ? (data.consent_version ?? 'v1') : null,
+    consent_at: data.consent ? new Date().toISOString() : null,
+    consent_ip: data.consent ? ip : null,
+    popia_lawful_basis: data.consent ? 'consent' : 'legitimate_interest',
+    // Attribution
+    utm_source: data.utm_source ?? null,
+    utm_medium: data.utm_medium ?? null,
+    utm_campaign: data.utm_campaign ?? null,
+    utm_content: data.utm_content ?? null,
+    utm_term: data.utm_term ?? null,
+    landing_referrer: data.landing_referrer ?? null,
+    // OEM pass-through
+    oem_pass_through: oem.detected,
+    oem_brand_detected: oem.brand,
+    oem_referrer_url: oem.referrer_url,
   }
 
   // Try Supabase
   const supabase = await getSupabase()
   if (supabase) {
     try {
-      const { data: inserted, error } = await supabase
-        .from('va_leads')
-        .insert(leadRow)
-        .select()
-        .single()
+      // Dedup: same phone OR email within 30 days = update existing instead.
+      const existing = await findExistingLead(supabase, {
+        phone: leadRow.phone,
+        email: leadRow.email,
+      })
+
+      let inserted: Lead | null = null
+      let error: { code?: string } | null = null
+      let isUpdate = false
+
+      if (existing) {
+        const merged = mergeLeadInput(existing, leadRow)
+        const { data: updated, error: upErr } = await supabase
+          .from('va_leads')
+          .update(merged)
+          .eq('id', existing.id)
+          .select()
+          .single()
+        inserted = updated as Lead
+        error = upErr
+        isUpdate = true
+      } else {
+        const result = await supabase.from('va_leads').insert(leadRow).select().single()
+        inserted = result.data as Lead
+        error = result.error
+      }
 
       if (!error && inserted) {
         // Auto-assign to best matching dealer
@@ -236,13 +312,30 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // Generate POPIA-clean lead receipt for the dealer.
+        let receipt = null
+        if (assignment) {
+          try {
+            receipt = await generateLeadReceipt(supabase, {
+              lead: inserted,
+              dealer_id: assignment.dealer_id,
+              channel: 'dashboard',
+            })
+          } catch (err) {
+            console.error('[Leads POST] Receipt generation failed:', err)
+          }
+        }
+
         return NextResponse.json({
           lead: inserted,
           ai_score: score,
           score_tier: tier,
+          merged_with_existing: isUpdate,
+          oem_pass_through: oem.detected ? { brand: oem.brand, suggestion: oem.suggestion } : null,
           assignment: assignment ? { dealer_id: assignment.dealer_id, dealer_name: assignment.dealer_name, reason: assignment.reason } : null,
           notification: notification ?? null,
-        }, { status: 201 })
+          receipt: receipt ? { id: receipt.id, opt_out_url: receipt.opt_out_url } : null,
+        }, { status: isUpdate ? 200 : 201 })
       }
     } catch {
       // fall through to in-memory

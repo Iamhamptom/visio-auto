@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { scoreLead } from '@/lib/ai/scoring'
 import { getNextMessage, type ConversationContext } from '@/lib/whatsapp/bot'
+import { verifyWhatsAppSignature } from '@/lib/security/webhook-signatures'
+import { claimWebhookEvent } from '@/lib/security/idempotency'
 import type { Lead } from '@/lib/types'
 
 const inMemoryLeads: Lead[] = []
@@ -165,9 +167,19 @@ export async function GET(request: NextRequest) {
 // POST: Receive incoming WhatsApp messages
 
 export async function POST(request: NextRequest) {
+  // Read raw body once — we need it for signature verification + parsing.
+  const rawBody = await request.text()
+
+  // Verify Meta HMAC. In production, missing/invalid signature = reject.
+  const signature = request.headers.get('x-hub-signature-256')
+  if (!verifyWhatsAppSignature(rawBody, signature)) {
+    console.error('[WA] Webhook signature verification failed')
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+  }
+
   let body: unknown
   try {
-    body = await request.json()
+    body = JSON.parse(rawBody)
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
@@ -188,6 +200,17 @@ export async function POST(request: NextRequest) {
       for (const inbound of messages) {
         const textContent = inbound.text?.body
         if (inbound.type !== 'text' || !textContent) continue
+
+        // Idempotency — Meta retries on non-200. Each message has a unique id.
+        const claim = await claimWebhookEvent({
+          provider: 'whatsapp',
+          eventId: inbound.id,
+          payload: inbound,
+        })
+        if (!claim.isFirstSeen) {
+          console.log(`[WA] message ${inbound.id} already processed — skipping`)
+          continue
+        }
 
         const phone = inbound.from
         const contactName =
